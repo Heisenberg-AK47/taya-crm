@@ -30,22 +30,17 @@ const S = {
 };
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [err, setErr] = useState("");
+function Login() {
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
-  async function submit(e) {
-    e.preventDefault();
+  async function loginGoogle() {
     setLoading(true); setErr("");
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (error) { setErr("Email ou mot de passe incorrect"); setLoading(false); return; }
-    if (data.user.email !== ADMIN_EMAIL) {
-      await sb.auth.signOut();
-      setErr("Accès réservé à l'administratrice"); setLoading(false); return;
-    }
-    onLogin(data.user);
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) { setErr("Erreur de connexion. Réessaie."); setLoading(false); }
   }
 
   return (
@@ -59,20 +54,15 @@ function Login({ onLogin }) {
           <p style={{ color: COLORS.muted, marginTop: 8, fontSize: 14 }}>Espace de gestion — Sarah Paulmier</p>
         </div>
         <div style={S.card}>
-          <form onSubmit={submit}>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ ...S.label, marginBottom: 8 }}>Email</div>
-              <input style={S.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contact@tayafitness.com" required />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ ...S.label, marginBottom: 8 }}>Mot de passe</div>
-              <input style={S.input} type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" required />
-            </div>
-            {err && <div style={{ background: `${COLORS.red}22`, color: COLORS.red, padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{err}</div>}
-            <button style={{ ...S.btn, width: "100%", padding: "14px" }} disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter"}
-            </button>
-          </form>
+          <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>
+            Connecte-toi avec ton compte Google pour accéder au CRM.
+          </p>
+          {err && <div style={{ background: `${COLORS.red}22`, color: COLORS.red, padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{err}</div>}
+          <button onClick={loginGoogle} disabled={loading}
+            style={{ width: "100%", padding: "14px", borderRadius: 10, border: `1px solid ${COLORS.border}`, background: COLORS.bgSoft, color: COLORS.white, fontWeight: 600, fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            {loading ? "Connexion..." : "Continuer avec Google"}
+          </button>
         </div>
       </div>
     </div>
@@ -741,7 +731,7 @@ export default function App() {
   }, []);
 
   if (checking) return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: COLORS.muted }}>Chargement...</div></div>;
-  if (!user) return <Login onLogin={setUser} />;
+  if (!user) return <Login />;
 
   const PAGES = { dashboard: Dashboard, clients: Clients, abonnements: Abonnements, programmes: Programmes, emails: Emails, messages: Messages, revenus: Revenus, taches: Taches };
   const Page = PAGES[active] || Dashboard;
