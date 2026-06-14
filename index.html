@@ -1,14 +1,1323 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Taya CRM</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  </head>
-  <body style="margin:0">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taya CRM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18",
+      "react/": "https://esm.sh/react@18/",
+      "react-dom": "https://esm.sh/react-dom@18",
+      "react-dom/client": "https://esm.sh/react-dom@18/client",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+    }
+  }
+  </script>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: 'Inter', sans-serif; }
+  .yt-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000; }
+  .yt-modal iframe { width:min(90vw,900px);height:min(50vw,500px);border:none;border-radius:12px; }
+  .prog-card:hover { transform:translateY(-3px);transition:transform 0.2s; }
+  .exo-card:hover { transform:translateY(-2px);transition:transform 0.2s;cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import { useState, useEffect, useMemo } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { createClient } from '@supabase/supabase-js';
+    import { createElement as h } from 'react';
+
+    const sb = createClient(
+      'https://esylzsacjkimcqxllhwd.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzeWx6c2FjamtpbWNxeGxsaHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMDE3MzEsImV4cCI6MjA5NTY3NzczMX0.Q06O-EywobZl0KigJcBnzCA81rXxcOluo4FupcNbr0w'
+    );
+
+    const C = { bg:'#0d1b2a',card:'#16273a',soft:'#122033',gold:'#ff6b4a',white:'#f0f4f8',muted:'rgba(220,232,244,0.55)',border:'rgba(255,255,255,0.07)',green:'#3ecf8e',red:'#ff4d6a',blue:'#4d9fff',purple:'#b48cff' };
+    const btn = {background:`linear-gradient(135deg,${C.gold},#e5432f)`,color:'#fff',border:'none',borderRadius:10,padding:'12px 24px',fontWeight:600,cursor:'pointer',fontSize:14};
+    const inp = {background:'rgba(255,255,255,0.05)',border:`1px solid ${C.border}`,borderRadius:10,color:C.white,padding:'12px 16px',fontSize:14,width:'100%',outline:'none'};
+    const card = {background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:24};
+    const th = {padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:C.muted,borderBottom:`1px solid ${C.border}`};
+    const td = {padding:'14px 16px',fontSize:14,color:C.white,borderBottom:`1px solid ${C.border}`};
+    const badge = (c) => ({background:`${c}22`,color:c,fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:100,display:'inline-block',marginRight:4});
+
+    // ── Azeoo clients data (52 clients réels) ───────────────────────────────
+    const AZEOO_CLIENTS = [
+      {nom:"marilyne melendi",email:"marilynemelendi7@gmail.com",app:"Apple",groupe:"—",objectif:"Sculpt Your Body",niveau:"Advanced"},
+      {nom:"sieu-ly thai",email:"sieuly.thai@gmail.com",app:"Apple",groupe:"—",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Stive Emakoua",email:"stiviesa@hotmail.com",app:"Apple",groupe:"—",objectif:"Get Fit",niveau:"Beginner"},
+      {nom:"Christelle Akué",email:"crisafina92@hotmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Khadidja Azrou",email:"meriemappel@icloud.com",app:"Apple",groupe:"Musculation",objectif:"Build Muscle",niveau:"Advanced"},
+      {nom:"Berile Yombe",email:"berile.yombe@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Intermediate"},
+      {nom:"suky biheng",email:"suky.biheng@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Advanced"},
+      {nom:"areski ouanes",email:"areskiouanes@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Matthieu Barbé",email:"mat.barbe@orange.fr",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Beginner"},
+      {nom:"Mael Colin",email:"maeloocolinoo@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Joy L",email:"schocolat22@yahoo.fr",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Fayçal Belhamza",email:"fafanew75@gmail.com",app:"—",groupe:"Musculation",objectif:"—",niveau:"—"},
+      {nom:"Agathe BADEAU",email:"agxthebadeau@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Nacer Aouni",email:"naceraouni.na@gmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Niang fafa",email:"fn828939@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Advanced"},
+      {nom:"Aissatou Henriketa",email:"aimeeanliette@gmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Olivia Andrieu",email:"chakox@yahoo.fr",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Larbi Boudjeraba",email:"larbi.boudjeraba@plainecommune.fr",app:"Apple",groupe:"Musculation",objectif:"Get Fit",niveau:"Intermediate"},
+      {nom:"Idele Nsanda",email:"nsandaidele@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Amel Sebouai",email:"yliesrayann@hotmail.fr",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Joëlle Renaud",email:"renaudcommeau@gmail.com",app:"Android",groupe:"Musculation",objectif:"Get Fit",niveau:"Beginner"},
+      {nom:"Kb BEZZAOUIA",email:"kmar321@gmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Hind Chetoui",email:"hind.chetoui@gmail.com",app:"Android",groupe:"Musculation",objectif:"Build Muscle",niveau:"Beginner"},
+      {nom:"kokou AZANLEDJI",email:"akokou2000@yahoo.fr",app:"Apple",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Beginner"},
+      {nom:"Edwige Dim",email:"vigea24@wanadoo.fr",app:"Apple",groupe:"Musculation",objectif:"Get Fit",niveau:"Intermediate"},
+      {nom:"alyssa letellier",email:"Alyssaletellier@icloud.com",app:"Apple",groupe:"Musculation",objectif:"Get Fit",niveau:"Beginner"},
+      {nom:"Jennifer NUNES GIL",email:"jennifer.gng@hotmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Benoît Varichon",email:"ben.networkmarketing@gmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Marguerite elong",email:"elmaguy1781@yahoo.fr",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Beginner"},
+      {nom:"Yannick Lawson",email:"kanwyn@hotmail.com",app:"Android",groupe:"Musculation",objectif:"Build Muscle",niveau:"Intermediate"},
+      {nom:"Maxwell Azandegbe",email:"azandegbemahouna@gmail.com",app:"Android",groupe:"Musculation",objectif:"Get Fit",niveau:"Beginner"},
+      {nom:"Davies DAVIES",email:"angelinedavies92110@gmail.com",app:"—",groupe:"Musculation",objectif:"—",niveau:"—"},
+      {nom:"taida benkyou",email:"taidabenkyou@gmail.com",app:"—",groupe:"Musculation",objectif:"Build Muscle",niveau:"Beginner"},
+      {nom:"dael ahiakpor",email:"dael.ahiakpor1@icloud.com",app:"Apple",groupe:"test",objectif:"Build Muscle",niveau:"Beginner"},
+      {nom:"Audrey Jean",email:"morena972@hotmail.fr",app:"Android",groupe:"Musculation",objectif:"Get Fit",niveau:"Advanced"},
+      {nom:"Manon Morin",email:"manon.morin1999@gmail.com",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Advanced"},
+      {nom:"Ablamba Manca Bouillot",email:"sophieaokily@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Build Muscle",niveau:"Advanced"},
+      {nom:"Amal Guerroudj",email:"guerroudjamal@gmail.com",app:"—",groupe:"Musculation",objectif:"—",niveau:"—"},
+      {nom:"madane dosso",email:"dosso4900@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Beginner"},
+      {nom:"Rosette Akayi",email:"rosette.akayi@gmail.com",app:"Apple",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Stella Fumey",email:"stella.fumey@gmail.com",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Intermediate"},
+      {nom:"Lamine keita",email:"lamine.leo@gmail.com",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Beginner"},
+      {nom:"Maïda Campbell",email:"maidac21@gmail.com",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Intermediate"},
+      {nom:"Sylvie Fumey",email:"sohannfg@hotmail.com",app:"Apple",groupe:"Musculation",objectif:"Get Fit",niveau:"Beginner"},
+      {nom:"Remi KOFFI",email:"remikoffi@gmail.com",app:"Android",groupe:"Musculation",objectif:"Sculpt Your Body",niveau:"Beginner"},
+      {nom:"Syan Ahiakpor",email:"sanchoplace2@gmail.com",app:"Apple",groupe:"test",objectif:"Build Muscle",niveau:"Beginner"},
+      {nom:"Greg Boudan",email:"boudan.gregory@orange.fr",app:"Android",groupe:"Musculation",objectif:"Lose Weight",niveau:"Intermediate"},
+      {nom:"Grégory Boudan",email:"cotcotprod@hotmail.fr",app:"Android",groupe:"Musculation",objectif:"—",niveau:"—"},
+      {nom:"sarah fumey",email:"fumeysarah@yahoo.fr",app:"Android/Apple",groupe:"test",objectif:"Sculpt Your Body",niveau:"Intermediate"},
+      {nom:"Luc Test",email:"luctaya@yopmail.com",app:"Apple",groupe:"test",objectif:"Get Fit",niveau:"Advanced"},
+      {nom:"serge paulmier",email:"contact@sergepaulmier.com",app:"Apple",groupe:"Musculation",objectif:"Get Fit",niveau:"Advanced"},
+      {nom:"Test Apple",email:"apple.tayafitness@yopmail.com",app:"Android",groupe:"—",objectif:"Get Fit",niveau:"Beginner"},
+    ];
+
+    // ── Programmes from Azeoo ────────────────────────────────────────────────
+    const PROGRAMMES = [
+      {nom:"The legend is on its way...",duree:"8 semaines",prix:"€19.95",objectif:"Sculpt Your Body",niveau:"",img:"https://cdn.azeoo.com/programs/large/sans-titre-65-5eaee7a9d27e0.jpg"},
+      {nom:"PERTE DE POIDS & PRISE DE MASSE",duree:"8 semaines",prix:"Perso",objectif:"Build Muscle",niveau:"Beginner",img:"https://cdn.azeoo.com/programs/large/img-0246-698ee5b4e6c63.jpg"},
+      {nom:"Ready for the IFBB Bikini!",duree:"8 semaines",prix:"€19.95",objectif:"Sculpt Your Body",niveau:"Intermediate",img:"https://cdn.azeoo.com/programs/large/img-1179-699c55b61b7e5.jpg"},
+      {nom:"Get stronger",duree:"12 semaines",prix:"€19.95",objectif:"Build Muscle",niveau:"Intermediate",img:"https://cdn.azeoo.com/programs/large/img-1232-690085f6175a1.jpg"},
+      {nom:"Thighs / abs / glutes",duree:"12 semaines",prix:"€19.95",objectif:"Sculpt Your Body",niveau:"Beginner",img:"https://cdn.azeoo.com/programs/large/sans-titre-53-5eaedb9e31e4a.jpg"},
+      {nom:"ANDROPAUSE : Sculpter le corps après 40 ans",duree:"12 semaines",prix:"€19.95",objectif:"Sculpt Your Body",niveau:"Intermediate",img:"https://cdn.azeoo.com/programs/large/img-2265-68e63ae92ca83.jpg"},
+      {nom:"POST-PARTUM 4ème TRIMESTRE",duree:"12 semaines",prix:"€19.95",objectif:"Build Muscle",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1057-692b96f9d1f73.jpg"},
+      {nom:"POST-PARTUM 3ème TRIMESTRE",duree:"12 semaines",prix:"€19.95",objectif:"Build Muscle",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1057-692b96f9d1f73.jpg"},
+      {nom:"GROSSESSE : 1er Trimestre / SALLE",duree:"12 semaines",prix:"€19.95",objectif:"Get Fit",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1057-692b96f9d1f73.jpg"},
+      {nom:"GROSSESSE : 2ème Trimestre / SALLE",duree:"12 semaines",prix:"€19.95",objectif:"Get Fit",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1057-692b96f9d1f73.jpg"},
+      {nom:"GROSSESSE : 3ème Trimestre / SALLE",duree:"12 semaines",prix:"€19.95",objectif:"Get Fit",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1057-692b96f9d1f73.jpg"},
+      {nom:"Get a more athletic physique",duree:"12 semaines",prix:"€19.95",objectif:"Lose Weight",niveau:"Beginner",img:"https://cdn.azeoo.com/programs/large/sans-titre-65-5eaee7a9d27e0.jpg"},
+      {nom:"4 week slimming challenge",duree:"12 semaines",prix:"€19.95",objectif:"Lose Weight",niveau:"Beginner",img:"https://cdn.azeoo.com/programs/large/sans-titre-53-5eaedb9e31e4a.jpg"},
+      {nom:"Full Body Kilos Killer !",duree:"12 semaines",prix:"€19.95",objectif:"Lose Weight",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1232-690085f6175a1.jpg"},
+      {nom:"MAUX DE DOS : MUSCLE-LE !",duree:"12 semaines",prix:"€19.95",objectif:"Get Fit",niveau:"",img:"https://cdn.azeoo.com/programs/large/img-1232-690085f6175a1.jpg"},
+    ];
+
+    const TABS = [
+      {id:'dashboard',icon:'📊',label:'Dashboard'},
+      {id:'clients',icon:'👥',label:'Clients Azeoo'},
+      {id:'programmes',icon:'🏋️',label:'Programmes'},
+      {id:'exercices',icon:'▶️',label:'Exercices'},
+      {id:'abonnements',icon:'💳',label:'Abonnements'},
+      {id:'revenus',icon:'💰',label:'Revenus'},
+      {id:'emails',icon:'📧',label:'Campagnes mail'},
+      {id:'taches',icon:'✅',label:'Tâches'},
+    ];
+
+    function App() {
+      const [user, setUser] = useState(null);
+      const [tab, setTab] = useState('dashboard');
+      const [loading, setLoading] = useState(true);
+      const [loginLoading, setLoginLoading] = useState(false);
+      const [err, setErr] = useState('');
+      const [email, setEmail] = useState('');
+      const [pass, setPass] = useState('');
+
+      useEffect(() => {
+        sb.auth.getSession().then(({data:{session}}) => {
+          if (session?.user) setUser(session.user);
+          setLoading(false);
+        });
+        const {data:{subscription}} = sb.auth.onAuthStateChange((_,session) => {
+          setUser(session?.user || null);
+        });
+        return () => subscription.unsubscribe();
+      }, []);
+
+      async function loginEmail(e) {
+        e.preventDefault();
+        setLoginLoading(true); setErr('');
+        const {error} = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) { setErr('Email ou mot de passe incorrect.'); setLoginLoading(false); }
+      }
+
+      if (loading) return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:C.muted}},'Chargement...');
+
+      if (!user) return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Inter,sans-serif'}},
+        h('div',{style:{width:400}},
+          h('div',{style:{textAlign:'center',marginBottom:40}},
+            h('div',{style:{fontSize:32,fontWeight:800,letterSpacing:-1}},
+              h('span',{style:{color:C.white}},'Taya'),
+              h('span',{style:{color:C.gold}},'CRM')
+            ),
+            h('p',{style:{color:C.muted,marginTop:8,fontSize:14}},'Espace de gestion — Sarah Fumey')
+          ),
+          h('div',{style:card},
+            h('p',{style:{color:C.muted,fontSize:14,marginBottom:24,textAlign:'center'}},'Connecte-toi avec ton compte Google'),
+            err && h('div',{style:{background:`${C.red}22`,color:C.red,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13}},err),
+            h('form',{onSubmit:loginEmail},
+              h('div',{style:{marginBottom:16}},
+                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Email'),
+                h('input',{style:inp,type:'email',value:email,onChange:e=>setEmail(e.target.value),required:true,placeholder:'contact@tayafitness.com'})
+              ),
+              h('div',{style:{marginBottom:24}},
+                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Mot de passe'),
+                h('input',{style:inp,type:'password',value:pass,onChange:e=>setPass(e.target.value),placeholder:'••••••••',required:true})
+              ),
+              h('button',{style:{...btn,width:'100%',padding:14},disabled:loginLoading},loginLoading?'Connexion...':'Se connecter')
+            )
+          )
+        )
+      );
+
+      const pages = {dashboard:Dashboard,clients:ClientsAzeoo,programmes:Programmes,exercices:Exercices,abonnements:Abonnements,revenus:Revenus,emails:Emails,taches:Taches};
+      const Page = pages[tab] || Dashboard;
+
+      return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',fontFamily:'Inter,sans-serif'}},
+        h('div',{style:{width:230,background:C.soft,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',minHeight:'100vh',flexShrink:0}},
+          h('div',{style:{padding:'28px 20px 20px',borderBottom:`1px solid ${C.border}`}},
+            h('div',{style:{fontSize:22,fontWeight:800}},
+              h('span',{style:{color:C.white}},'Taya'),
+              h('span',{style:{color:C.gold}},'CRM')
+            ),
+            h('div',{style:{fontSize:12,color:C.muted,marginTop:4}},user.email)
+          ),
+          h('nav',{style:{flex:1,padding:'12px 10px',overflowY:'auto'}},
+            ...TABS.map(t => h('button',{key:t.id,onClick:()=>setTab(t.id),style:{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'11px 12px',borderRadius:10,border:'none',background:tab===t.id?`rgba(255,107,74,0.12)`:'transparent',color:tab===t.id?C.gold:C.muted,fontWeight:tab===t.id?600:400,fontSize:14,cursor:'pointer',textAlign:'left',marginBottom:2}},
+              h('span',null,t.icon), t.label
+            ))
+          ),
+          h('div',{style:{padding:'16px 10px',borderTop:`1px solid ${C.border}`}},
+            h('button',{onClick:()=>sb.auth.signOut(),style:{width:'100%',background:'transparent',color:C.muted,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px',fontSize:13,cursor:'pointer'}},'Déconnexion')
+          )
+        ),
+        h('main',{style:{flex:1,padding:40,overflowY:'auto',maxHeight:'100vh',color:C.white}},
+          h(Page,null)
+        )
+      );
+    }
+
+    // ── Dashboard ─────────────────────────────────────────────────────────────
+    function Dashboard() {
+      const [stats,setStats] = useState({clients:0,actifs:0,revenus:0,newsletter:0});
+      const [recent,setRecent] = useState([]);
+      useEffect(()=>{
+        async function load(){
+          const [{count:cl},{count:ac},{count:nl},{data:ab},{data:rc}] = await Promise.all([
+            sb.from('profiles').select('*',{count:'exact',head:true}),
+            sb.from('abonnements').select('*',{count:'exact',head:true}).eq('statut','active'),
+            sb.from('newsletter').select('*',{count:'exact',head:true}),
+            sb.from('abonnements').select('plan').eq('statut','active'),
+            sb.from('profiles').select('full_name,email,created_at').order('created_at',{ascending:false}).limit(5),
+          ]);
+          const prix={starter:49,performance:99,vip:199};
+          const mrr=(ab||[]).reduce((s,a)=>s+(prix[a.plan]||0),0);
+          setStats({clients:cl||0,actifs:ac||0,revenus:mrr,newsletter:nl||0});
+          setRecent(rc||[]);
+        }
+        load();
+      },[]);
+
+      const goalColors = {'Lose Weight':C.blue,'Build Muscle':C.green,'Sculpt Your Body':C.gold,'Get Fit':C.purple};
+      const goalCounts = AZEOO_CLIENTS.reduce((acc,c)=>{if(c.objectif!=='—'){acc[c.objectif]=(acc[c.objectif]||0)+1;}return acc;},{});
+
+      return h('div',null,
+        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:8,color:C.white}},'Dashboard'),
+        h('p',{style:{color:C.muted,fontSize:14,marginBottom:32}},'Vue d\'ensemble · Azeoo + CRM Taya Fitness'),
+        // Stats row 1
+        h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24}},
+          ...[
+            {label:'Clients Azeoo',value:AZEOO_CLIENTS.length,color:C.blue,icon:'👥'},
+            {label:'Programmes',value:PROGRAMMES.length,color:C.gold,icon:'🏋️'},
+            {label:'Exercices',value:'1 104',color:C.green,icon:'▶️'},
+            {label:'Abonnés CRM actifs',value:stats.actifs,color:C.purple,icon:'💳'},
+          ].map(s=>h('div',{key:s.label,style:{background:C.soft,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px'}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+              h('div',null,
+                h('div',{style:{fontSize:26,fontWeight:800,color:s.color}},s.value),
+                h('div',{style:{fontSize:12,color:C.muted,marginTop:4}},s.label)
+              ),
+              h('div',{style:{fontSize:24}},s.icon)
+            )
+          ))
+        ),
+        // Goals breakdown
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:24}},
+          h('div',{style:card},
+            h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:20,color:C.white}},'Répartition objectifs clients'),
+            ...Object.entries(goalCounts).map(([obj,n])=>h('div',{key:obj,style:{marginBottom:12}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:5}},
+                h('span',{style:{fontSize:13,color:C.white}},obj),
+                h('span',{style:{fontSize:13,color:C.muted}},`${n} clients`)
+              ),
+              h('div',{style:{background:C.border,borderRadius:100,height:5}},
+                h('div',{style:{background:goalColors[obj]||C.muted,borderRadius:100,height:5,width:`${n/AZEOO_CLIENTS.length*100}%`}})
+              )
+            ))
+          ),
+          h('div',{style:card},
+            h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:16,color:C.white}},'Derniers clients inscrits'),
+            ...(recent.length?recent:[]).map((c,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:`1px solid ${C.border}`,fontSize:13}},
+              h('span',{style:{color:C.white}},c.full_name||'—'),
+              h('span',{style:{color:C.muted}},c.created_at?new Date(c.created_at).toLocaleDateString('fr-FR'):'—')
+            )),
+            recent.length===0&&h('p',{style:{color:C.muted,fontSize:13}},'Aucune donnée')
+          )
+        ),
+        // Revenue stats
+        h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}},
+          ...[
+            {label:'MRR',value:`${stats.revenus}€`,color:C.green},
+            {label:'ARR projeté',value:`${stats.revenus*12}€`,color:C.blue},
+            {label:'Newsletter',value:stats.newsletter,color:C.purple},
+          ].map(s=>h('div',{key:s.label,style:{background:C.soft,border:`1px solid ${C.border}`,borderRadius:12,padding:'18px 22px'}},
+            h('div',{style:{fontSize:22,fontWeight:800,color:s.color}},s.value),
+            h('div',{style:{fontSize:12,color:C.muted,marginTop:4}},s.label)
+          ))
+        )
+      );
+    }
+
+    // ── Clients Azeoo ─────────────────────────────────────────────────────────
+    function ClientsAzeoo() {
+      const [search,setSearch] = useState('');
+      const [filterObj,setFilterObj] = useState('');
+      const [filterGrp,setFilterGrp] = useState('');
+      const goalColors = {'Lose Weight':C.blue,'Build Muscle':C.green,'Sculpt Your Body':C.gold,'Get Fit':C.purple};
+      const niveauColors = {'Advanced':C.green,'Intermediate':C.gold,'Beginner':C.blue,'—':C.muted};
+      const filtered = AZEOO_CLIENTS.filter(c=>{
+        const s = search.toLowerCase();
+        return (!s || c.nom.toLowerCase().includes(s) || c.email.toLowerCase().includes(s))
+          && (!filterObj || c.objectif===filterObj)
+          && (!filterGrp || c.groupe===filterGrp);
+      });
+      const groupes = [...new Set(AZEOO_CLIENTS.map(c=>c.groupe))].sort();
+      const objectifs = [...new Set(AZEOO_CLIENTS.map(c=>c.objectif).filter(o=>o!=='—'))].sort();
+
+      return h('div',null,
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24}},
+          h('div',null,
+            h('h1',{style:{fontSize:24,fontWeight:700,color:C.white}},'Clients Azeoo'),
+            h('p',{style:{color:C.muted,fontSize:14,marginTop:4}},`${AZEOO_CLIENTS.length} clients · importés depuis tayafitness.azeoo.com`)
+          ),
+          h('div',{style:{fontSize:12,color:C.muted,background:`${C.blue}22`,padding:'6px 12px',borderRadius:8}},`✅ Sync. le ${new Date().toLocaleDateString('fr-FR')}`)
+        ),
+        // Filters
+        h('div',{style:{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}},
+          h('input',{style:{...inp,width:240},placeholder:'🔍 Rechercher...',value:search,onChange:e=>setSearch(e.target.value)}),
+          h('select',{style:{...inp,width:180},value:filterObj,onChange:e=>setFilterObj(e.target.value)},
+            h('option',{value:''},'Tous objectifs'),
+            ...objectifs.map(o=>h('option',{key:o,value:o},o))
+          ),
+          h('select',{style:{...inp,width:160},value:filterGrp,onChange:e=>setFilterGrp(e.target.value)},
+            h('option',{value:''},'Tous groupes'),
+            ...groupes.map(g=>h('option',{key:g,value:g},g))
+          )
+        ),
+        // Stats row
+        h('div',{style:{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}},
+          ...Object.entries({'Lose Weight':C.blue,'Build Muscle':C.green,'Sculpt Your Body':C.gold,'Get Fit':C.purple}).map(([obj,color])=>{
+            const n=AZEOO_CLIENTS.filter(c=>c.objectif===obj).length;
+            return h('div',{key:obj,style:{background:`${color}15`,border:`1px solid ${color}33`,borderRadius:8,padding:'8px 14px',fontSize:12}},
+              h('span',{style:{color}},'● '),
+              h('span',{style:{color:C.white,fontWeight:600}},obj),
+              h('span',{style:{color:C.muted,marginLeft:6}},n)
+            );
+          })
+        ),
+        // Table
+        h('div',{style:card},
+          h('table',{style:{width:'100%',borderCollapse:'collapse'}},
+            h('thead',null,h('tr',null,
+              ...['Client','Email','App','Groupe','Objectif','Niveau'].map(l=>h('th',{key:l,style:th},l))
+            )),
+            h('tbody',null,...filtered.map((c,i)=>h('tr',{key:i,style:{background:i%2?'rgba(255,255,255,0.01)':'transparent'}},
+              h('td',{style:td},h('div',{style:{fontWeight:500}},c.nom)),
+              h('td',{style:{...td,color:C.muted,fontSize:12}},c.email),
+              h('td',{style:{...td,fontSize:12}},
+                c.app.includes('Apple') && h('span',{style:{marginRight:4}},'🍎'),
+                c.app.includes('Android') && h('span',null,'🤖')
+              ),
+              h('td',{style:td},c.groupe!=='—'?h('span',{style:badge(C.purple)},c.groupe):'—'),
+              h('td',{style:td},c.objectif!=='—'?h('span',{style:badge(goalColors[c.objectif]||C.muted)},c.objectif):'—'),
+              h('td',{style:td},c.niveau!=='—'?h('span',{style:badge(niveauColors[c.niveau]||C.muted)},c.niveau):'—')
+            )))
+          )
+        )
+      );
+    }
+
+    // ── Programmes ────────────────────────────────────────────────────────────
+    function Programmes() {
+      const [progs,setProgs] = useState([]);
+      const [loading,setLoading] = useState(true);
+      const [isAdmin,setIsAdmin] = useState(false);
+      const [filter,setFilter] = useState('');
+      const [msg,setMsg] = useState('');
+      const [saving,setSaving] = useState(false);
+      // Detail view
+      const [selectedProg,setSelectedProg] = useState(null);
+      const [selWeek,setSelWeek] = useState(1);
+      const [progExos,setProgExos] = useState([]);
+      const [loadingExos,setLoadingExos] = useState(false);
+      // Workouts (séances nommées par jour)
+      const [workouts,setWorkouts] = useState([]); // [{id,programme_id,week_number,day_number,name}]
+      const [selectedDay,setSelectedDay] = useState(null); // {week,day} or null
+      const [editWorkoutName,setEditWorkoutName] = useState(false);
+      const [workoutNameDraft,setWorkoutNameDraft] = useState('');
+      // Programme CRUD
+      const EP = {titre:'',description:'',description_courte:'',image_url:'',prix:'',prix_promo:'',categorie:'musculation',niveau:'debutant',duree_heures:12,actif:true};
+      const [createOpen,setCreateOpen] = useState(false);
+      const [editProg,setEditProg] = useState(null);
+      const [delProg,setDelProg] = useState(null);
+      const [pForm,setPForm] = useState(EP);
+      // Exercise CRUD
+      const [addExoOpen,setAddExoOpen] = useState(false);
+      const [allExos,setAllExos] = useState([]);
+      const [exoSearch,setExoSearch] = useState('');
+      const [aForm,setAForm] = useState({exercise_id:'',week_number:1,day_number:1,order_index:1,sets:3,reps:12,rest_seconds:60,charge:'',notes:''});
+
+      const catColors = {musculation:C.green,'perte-de-poids':C.blue,'post-partum':C.purple,'force':C.gold};
+      const catLabels = {musculation:'Musculation','perte-de-poids':'Perte de poids','post-partum':'Post-Partum','force':'Force'};
+      const niveauLabels = {debutant:'Débutant',intermediaire:'Intermédiaire',avance:'Avancé'};
+      const filtExos = useMemo(()=>allExos.filter(e=>!exoSearch||e.name.toLowerCase().includes(exoSearch.toLowerCase())),[allExos,exoSearch]);
+
+      useEffect(()=>{
+        sb.auth.getSession().then(({data:{session}})=>{if(session?.user)setIsAdmin(ADMIN_EMAILS.includes(session.user.email));});
+        sb.from('programmes').select('*').order('created_at').then(({data})=>{setProgs(data||[]);setLoading(false);});
+      },[]);
+
+      // ── Programme CRUD ──
+      async function handleCreate() {
+        setSaving(true);
+        const slug = pForm.titre.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        const {data,error} = await sb.from('programmes')
+          .insert({...pForm,slug,prix:parseFloat(pForm.prix)||0,prix_promo:pForm.prix_promo?parseFloat(pForm.prix_promo):null,duree_heures:parseInt(pForm.duree_heures)||0})
+          .select().single();
+        if (!error&&data){setProgs(p=>[...p,data]);setCreateOpen(false);setPForm(EP);setMsg('✅ Programme créé');}
+        else setMsg('❌ '+(error?.message||'Erreur'));
+        setSaving(false);setTimeout(()=>setMsg(''),4000);
+      }
+      async function handleEditProg() {
+        setSaving(true);
+        const {data,error} = await sb.from('programmes')
+          .update({...editProg,prix:parseFloat(editProg.prix)||0,prix_promo:editProg.prix_promo?parseFloat(editProg.prix_promo):null,duree_heures:parseInt(editProg.duree_heures)||0})
+          .eq('id',editProg.id).select().single();
+        if (!error&&data){setProgs(p=>p.map(x=>x.id===data.id?data:x));if(selectedProg?.id===data.id)setSelectedProg(data);setEditProg(null);setMsg('✅ Programme mis à jour');}
+        else setMsg('❌ '+(error?.message||'Erreur'));
+        setSaving(false);setTimeout(()=>setMsg(''),4000);
+      }
+      async function handleDeleteProg() {
+        setSaving(true);
+        const {error} = await sb.from('programmes').delete().eq('id',delProg.id);
+        if (!error){setProgs(p=>p.filter(x=>x.id!==delProg.id));if(selectedProg?.id===delProg.id)setSelectedProg(null);setDelProg(null);setMsg('✅ Supprimé');}
+        else setMsg('❌ '+(error?.message||'Erreur'));
+        setSaving(false);setTimeout(()=>setMsg(''),4000);
+      }
+      async function handleTogglePublish(prog,e) {
+        e.stopPropagation();
+        const newActif = !prog.actif;
+        const {data,error} = await sb.from('programmes').update({actif:newActif}).eq('id',prog.id).select().single();
+        if (!error&&data){
+          setProgs(p=>p.map(x=>x.id===data.id?data:x));
+          if(selectedProg?.id===data.id)setSelectedProg(data);
+          setMsg(newActif?'✅ Programme publié sur le site 🌐':'✅ Programme dépublié du site');
+        } else setMsg('❌ '+(error?.message||'Erreur'));
+        setTimeout(()=>setMsg(''),4000);
+      }
+
+      // ── Exercise & Workout CRUD ──
+      async function loadProgData(id){
+        setLoadingExos(true);
+        const [{data:exData},{data:wData}] = await Promise.all([
+          sb.from('programme_exercises').select('*, exercise:exercises(id,name,youtube_id,image_filename,tags)')
+            .eq('programme_id',id).order('week_number').order('day_number').order('order_index'),
+          sb.from('programme_workouts').select('*').eq('programme_id',id).order('week_number').order('day_number')
+        ]);
+        setProgExos(exData||[]);
+        setWorkouts(wData||[]);
+        setLoadingExos(false);
+      }
+      function handleSelectProg(p){setSelectedProg(p);setSelWeek(1);setSelectedDay(null);loadProgData(p.id);setMsg('');}
+
+      // Créer ou mettre à jour le nom d'une séance
+      async function saveWorkoutName(week,day,name){
+        setSaving(true);
+        const existing = workouts.find(w=>w.week_number===week&&w.day_number===day);
+        if(existing){
+          const{data,error}=await sb.from('programme_workouts').update({name}).eq('id',existing.id).select().single();
+          if(!error&&data) setWorkouts(prev=>prev.map(w=>w.id===data.id?data:w));
+          else setMsg('❌ '+(error?.message||'Erreur'));
+        } else {
+          const{data,error}=await sb.from('programme_workouts').insert({programme_id:selectedProg.id,week_number:week,day_number:day,name}).select().single();
+          if(!error&&data) setWorkouts(prev=>[...prev,data]);
+          else setMsg('❌ '+(error?.message||'Erreur'));
+        }
+        setSaving(false);setEditWorkoutName(false);setTimeout(()=>setMsg(''),4000);
+      }
+
+      // Supprimer tous les exos d'un jour
+      async function deleteWorkoutDay(week,day){
+        if(!confirm(`Supprimer toute la séance Semaine ${week} / Séance ${day} ?`))return;
+        setSaving(true);
+        const ids=progExos.filter(e=>e.week_number===week&&e.day_number===day).map(e=>e.id);
+        if(ids.length) await sb.from('programme_exercises').delete().in('id',ids);
+        const wo=workouts.find(w=>w.week_number===week&&w.day_number===day);
+        if(wo) await sb.from('programme_workouts').delete().eq('id',wo.id);
+        setProgExos(prev=>prev.filter(e=>!(e.week_number===week&&e.day_number===day)));
+        setWorkouts(prev=>prev.filter(w=>!(w.week_number===week&&w.day_number===day)));
+        setSelectedDay(null);setSaving(false);
+      }
+
+      async function openAddExo(wk,dk){
+        const w = wk!==undefined?wk:selWeek;
+        const d = dk!==undefined?dk:(selectedDay?.day||1);
+        if(!allExos.length){const{data}=await sb.from('exercises').select('id,name,tags').order('name').limit(2000);setAllExos(data||[]);}
+        const wdExos=progExos.filter(e=>(e.week_number||1)===w&&(e.day_number||1)===d);
+        setAddExoOpen(true);setExoSearch('');
+        setAForm({exercise_id:'',week_number:w,day_number:d,order_index:wdExos.length+1,sets:3,reps:12,rest_seconds:60,charge:'',notes:''});
+      }
+      async function handleAddExo(){
+        if(!aForm.exercise_id){setMsg('❌ Sélectionnez un exercice');return;}
+        setSaving(true);
+        const{data,error}=await sb.from('programme_exercises')
+          .insert({...aForm,programme_id:selectedProg.id})
+          .select('*, exercise:exercises(id,name,youtube_id,image_filename,tags)').single();
+        if(!error&&data){
+          setProgExos(prev=>[...prev,data].sort((a,b)=>(a.week_number-b.week_number)||((a.day_number||0)-(b.day_number||0))||(a.order_index-b.order_index)));
+          setSelWeek(aForm.week_number);
+          setSelectedDay({week:aForm.week_number,day:aForm.day_number});
+          setAddExoOpen(false);setMsg('✅ Exercice ajouté');
+        }else setMsg('❌ '+(error?.message||'Erreur'));
+        setSaving(false);setTimeout(()=>setMsg(''),4000);
+      }
+      async function handleRemoveExo(peId){
+        if(!confirm('Retirer cet exercice du programme ?'))return;
+        const{error}=await sb.from('programme_exercises').delete().eq('id',peId);
+        if(!error)setProgExos(prev=>prev.filter(e=>e.id!==peId));
+        else setMsg('❌ '+(error?.message||'Erreur'));
+        setTimeout(()=>setMsg(''),4000);
+      }
+
+      // ── Shared prog form fields ──
+      function pFields(data,set){
+        const fi=(label,field,type='text',extra={})=>{
+          const val=data[field]??'';
+          const onChange=e=>set(p=>({...p,[field]:type==='number'?Number(e.target.value)||0:e.target.value}));
+          if(type==='select')return h('div',{key:field,style:{marginBottom:10}},
+            h('label',{style:{fontSize:10,color:C.muted,display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}},label),
+            h('select',{value:val,onChange,style:inp},...(extra.opts||[]).map(([v,l])=>h('option',{key:v,value:v},l))));
+          if(type==='textarea')return h('div',{key:field,style:{marginBottom:10}},
+            h('label',{style:{fontSize:10,color:C.muted,display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}},label),
+            h('textarea',{value:val,onChange,placeholder:extra.ph||'',style:{...inp,height:68,resize:'vertical'}}));
+          return h('div',{key:field,style:{marginBottom:10}},
+            h('label',{style:{fontSize:10,color:C.muted,display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}},label),
+            h('input',{type,value:val,onChange,placeholder:extra.ph||'',style:inp}));
+        };
+        return [
+          fi('Titre','titre','text',{ph:'Ex: Transformation Corps & Mental'}),
+          fi('Description courte','description_courte','text',{ph:'Résumé en une phrase'}),
+          fi('Description complète','description','textarea',{ph:'Description du programme...'}),
+          fi('URL image','image_url','text',{ph:'https://...'}),
+          h('div',{key:'row1',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:0}},
+            fi('Prix (€)','prix','number',{ph:'99'}),
+            fi('Prix promo (€)','prix_promo','number',{ph:'(optionnel)'})
+          ),
+          h('div',{key:'row2',style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:0}},
+            fi('Catégorie','categorie','select',{opts:[['musculation','Musculation'],['perte-de-poids','Perte de poids'],['post-partum','Post-Partum'],['force','Force']]}),
+            fi('Niveau','niveau','select',{opts:[['debutant','Débutant'],['intermediaire','Intermédiaire'],['avance','Avancé']]}),
+            fi('Durée (h)','duree_heures','number',{ph:'12'})
+          ),
+        ];
+      }
+
+      // ── Modal helper ──
+      const Modal=(children)=>h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+        h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:540}},children));
+
+      // ── Add Exercise Modal (shared) ──
+      const AddExoModal=()=>h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+        h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:560}},
+          h('h3',{style:{color:C.white,fontSize:16,fontWeight:700,marginBottom:16}},`Ajouter un exercice — Sem. ${aForm.week_number} / Jour ${aForm.day_number}`),
+          h('input',{placeholder:'Rechercher un exercice...',value:exoSearch,onChange:e=>setExoSearch(e.target.value),style:{...inp,marginBottom:8}}),
+          h('div',{style:{maxHeight:180,overflowY:'auto',marginBottom:12,border:`1px solid ${C.border}`,borderRadius:10}},
+            filtExos.length===0?h('div',{style:{padding:20,textAlign:'center',color:C.muted,fontSize:13}},'Aucun résultat')
+            :filtExos.slice(0,60).map(e=>h('div',{key:e.id,onClick:()=>setAForm(f=>({...f,exercise_id:e.id})),
+              style:{padding:'9px 14px',cursor:'pointer',fontSize:13,background:aForm.exercise_id===e.id?`${C.gold}22`:C.soft,color:aForm.exercise_id===e.id?C.gold:C.white,borderBottom:`1px solid ${C.border}`}},e.name))
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:8}},
+            ...[['Semaine','week_number','number'],['Séance','day_number','number'],['Ordre','order_index','number']].map(([l,f,t])=>
+              h('div',{key:f},h('label',{style:{fontSize:10,color:C.muted,display:'block',marginBottom:3}},l),
+                h('input',{type:t,min:0,value:aForm[f],onChange:e=>setAForm(g=>({...g,[f]:parseInt(e.target.value)||0})),style:{...inp,padding:'8px 10px'}})))
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}},
+            ...[['Séries','sets','number'],['Reps','reps','number'],['Repos s','rest_seconds','number'],['Charge','charge','text']].map(([l,f,t])=>
+              h('div',{key:f},h('label',{style:{fontSize:10,color:C.muted,display:'block',marginBottom:3}},l),
+                h('input',{type:t,min:t==='number'?0:undefined,value:aForm[f],onChange:e=>setAForm(g=>({...g,[f]:t==='number'?(parseInt(e.target.value)||0):e.target.value})),placeholder:f==='charge'?'20kg':'',style:{...inp,padding:'8px 8px'}})))
+          ),
+          h('textarea',{placeholder:'Notes...',value:aForm.notes,onChange:e=>setAForm(f=>({...f,notes:e.target.value})),style:{...inp,height:48,resize:'vertical',marginBottom:12}}),
+          h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+            h('button',{onClick:()=>setAddExoOpen(false),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 18px',cursor:'pointer'}},'Annuler'),
+            h('button',{onClick:handleAddExo,disabled:saving||!aForm.exercise_id,style:{...btn,opacity:saving||!aForm.exercise_id?0.5:1}},saving?'Ajout...':'Ajouter')
+          )
+        )
+      );
+
+      // ── Delete confirm modal ──
+      const DelProgModal=()=>h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}},
+        h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,maxWidth:380,textAlign:'center'}},
+          h('div',{style:{fontSize:32,marginBottom:12}},'⚠️'),
+          h('div',{style:{fontSize:15,fontWeight:700,color:C.white,marginBottom:8}},'Supprimer ce programme ?'),
+          h('div',{style:{fontSize:13,color:C.muted,marginBottom:20}},`"${delProg?.titre}" et tous ses exercices liés seront supprimés.`),
+          h('div',{style:{display:'flex',gap:10,justifyContent:'center'}},
+            h('button',{onClick:()=>setDelProg(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 20px',cursor:'pointer'}},'Annuler'),
+            h('button',{onClick:handleDeleteProg,disabled:saving,style:{...btn,background:`linear-gradient(135deg,${C.red},#c0392b)`,opacity:saving?0.5:1}},saving?'Suppression...':'Supprimer')
+          )
+        )
+      );
+
+      // ── DETAIL VIEW ──
+      if (selectedProg) {
+        const allWeeks=[...new Set(progExos.map(e=>e.week_number||1))].sort((a,b)=>a-b);
+        // Also include weeks from workouts table
+        workouts.forEach(w=>{if(!allWeeks.includes(w.week_number))allWeeks.push(w.week_number);});
+        allWeeks.sort((a,b)=>a-b);
+        if(!allWeeks.length)allWeeks.push(1);
+        const weeks=allWeeks;
+
+        const DAYS_FR=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+        // Workout detail panel (when a day is selected)
+        if(selectedDay){
+          const {week:sw,day:sd}=selectedDay;
+          const dayExos=progExos.filter(e=>(e.week_number||1)===sw&&(e.day_number||1)===sd).sort((a,b)=>a.order_index-b.order_index);
+          const workout=workouts.find(w=>w.week_number===sw&&w.day_number===sd);
+          const woName=workout?.name||`Séance ${sd}`;
+          const totalSets=dayExos.reduce((s,e)=>s+(e.sets||0),0);
+
+          return h('div',null,
+            // Top nav
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:18,flexWrap:'wrap'}},
+              h('button',{onClick:()=>setSelectedDay(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13}},'← Séances'),
+              h('div',{style:{fontSize:13,color:C.muted}},`${selectedProg.titre} · Semaine ${sw}`),
+              h('div',{style:{flex:1}}),
+              isAdmin&&h('button',{onClick:()=>{setAddExoOpen(true);setExoSearch('');if(!allExos.length)sb.from('exercises').select('id,name,tags').order('name').limit(2000).then(({data})=>setAllExos(data||[]));setAForm({exercise_id:'',week_number:sw,day_number:sd,order_index:dayExos.length+1,sets:3,reps:12,rest_seconds:60,charge:'',notes:''});},style:{...btn,fontSize:13,padding:'9px 18px'}},'+ Exercice'),
+              isAdmin&&h('button',{onClick:()=>deleteWorkoutDay(sw,sd),style:{background:'transparent',border:`1px solid ${C.red}33`,color:C.red,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13}},'🗑 Séance')
+            ),
+            msg&&h('div',{style:{background:msg.startsWith('✅')?`${C.green}22`:`${C.red}22`,color:msg.startsWith('✅')?C.green:C.red,padding:'10px 16px',borderRadius:8,marginBottom:14,fontSize:13}},msg),
+            // Workout header card
+            h('div',{style:{...card,marginBottom:18,display:'flex',alignItems:'center',gap:16}},
+              h('div',{style:{width:46,height:46,borderRadius:12,background:`${C.gold}22`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:800,color:C.gold,flexShrink:0}},sd),
+              h('div',{style:{flex:1}},
+                editWorkoutName
+                  ? h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+                      h('input',{value:workoutNameDraft,onChange:e=>setWorkoutNameDraft(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveWorkoutName(sw,sd,workoutNameDraft);if(e.key==='Escape')setEditWorkoutName(false);},autoFocus:true,style:{...inp,fontSize:16,fontWeight:700,padding:'6px 12px',flex:1}}),
+                      h('button',{onClick:()=>saveWorkoutName(sw,sd,workoutNameDraft),disabled:saving,style:{...btn,padding:'6px 14px',fontSize:13}},saving?'...':'✓'),
+                      h('button',{onClick:()=>setEditWorkoutName(false),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:13}},'✕')
+                    )
+                  : h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+                      h('div',{style:{fontSize:18,fontWeight:700,color:C.white}},woName),
+                      isAdmin&&h('button',{onClick:()=>{setWorkoutNameDraft(woName);setEditWorkoutName(true);},style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:13,padding:'2px 6px'}},'✏️')
+                    )
+              ),
+              h('div',{style:{display:'flex',gap:20,marginLeft:'auto'}},
+                h('div',{style:{textAlign:'center'}},h('div',{style:{fontSize:20,fontWeight:800,color:C.white}},dayExos.length),h('div',{style:{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em'}},'Exercices')),
+                h('div',{style:{textAlign:'center'}},h('div',{style:{fontSize:20,fontWeight:800,color:C.gold}},totalSets),h('div',{style:{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em'}},'Séries'))
+              )
+            ),
+            // Exercises list
+            loadingExos?h('div',{style:{color:C.muted,textAlign:'center',padding:60}},'Chargement...'):
+            dayExos.length===0
+              ?h('div',{style:{...card,textAlign:'center',padding:48,color:C.muted}},
+                  h('div',{style:{fontSize:36,marginBottom:12}},'💪'),
+                  h('div',{style:{fontWeight:600,color:C.white,marginBottom:8}}),'Aucun exercice pour cette séance',
+                  isAdmin&&h('button',{onClick:()=>{setAddExoOpen(true);setExoSearch('');if(!allExos.length)sb.from('exercises').select('id,name,tags').order('name').limit(2000).then(({data})=>setAllExos(data||[]));setAForm({exercise_id:'',week_number:sw,day_number:sd,order_index:1,sets:3,reps:12,rest_seconds:60,charge:'',notes:''});},style:{...btn,marginTop:12,fontSize:13}},'+ Ajouter un exercice')
+                )
+              :h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+                ...dayExos.map((pe,idx)=>
+                  h('div',{key:pe.id,style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,display:'flex',alignItems:'stretch',overflow:'hidden'}},
+                    // Order badge
+                    h('div',{style:{width:36,flexShrink:0,background:C.soft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.muted}},(idx+1)),
+                    // Thumbnail
+                    h('div',{style:{width:80,flexShrink:0,background:C.soft,position:'relative'}},
+                      pe.exercise?.image_filename
+                        ?h('img',{src:'https://cdn.azeoo.com/exercises/small-wide/'+pe.exercise.image_filename,style:{width:'100%',height:'100%',objectFit:'cover',display:'block',minHeight:68},onError:e=>{e.target.style.display='none'}})
+                        :h('div',{style:{width:'100%',height:68,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}},'💪')
+                    ),
+                    // Content
+                    h('div',{style:{flex:1,padding:'10px 14px',display:'flex',alignItems:'center',gap:10}},
+                      h('div',{style:{flex:1}},
+                        h('div',{style:{fontSize:14,fontWeight:600,color:C.white,marginBottom:7}},pe.exercise?.name||'—'),
+                        h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',alignItems:'center'}},
+                          pe.sets&&h('div',{style:{textAlign:'center'}},
+                            h('div',{style:{fontSize:20,fontWeight:800,color:C.gold,lineHeight:1}},pe.sets),
+                            h('div',{style:{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2}},'Séries')),
+                          (pe.sets&&pe.reps)&&h('div',{style:{color:C.muted,fontSize:16,alignSelf:'center',paddingBottom:4}},'×'),
+                          pe.reps&&h('div',{style:{textAlign:'center'}},
+                            h('div',{style:{fontSize:20,fontWeight:800,color:C.white,lineHeight:1}},pe.reps),
+                            h('div',{style:{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2}},'Reps')),
+                          pe.charge&&h('div',{style:{textAlign:'center',borderLeft:`1px solid ${C.border}`,paddingLeft:12}},
+                            h('div',{style:{fontSize:15,fontWeight:700,color:C.blue,lineHeight:1}},pe.charge),
+                            h('div',{style:{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2}},'Charge')),
+                          pe.rest_seconds&&h('div',{style:{textAlign:'center'}},
+                            h('div',{style:{fontSize:15,fontWeight:600,color:C.muted,lineHeight:1}},pe.rest_seconds>=60?`${Math.floor(pe.rest_seconds/60)}min${pe.rest_seconds%60?` ${pe.rest_seconds%60}s`:''}`:pe.rest_seconds+'s'),
+                            h('div',{style:{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2}},'Repos'))
+                        ),
+                        pe.notes&&h('div',{style:{fontSize:11,color:C.muted,marginTop:6,fontStyle:'italic',borderTop:`1px solid ${C.border}`,paddingTop:5}},pe.notes)
+                      ),
+                      pe.exercise?.youtube_id&&h('a',{href:'https://www.youtube.com/watch?v='+pe.exercise.youtube_id,target:'_blank',
+                        style:{width:34,height:34,borderRadius:'50%',background:`${C.red}22`,display:'flex',alignItems:'center',justifyContent:'center',color:C.red,textDecoration:'none',fontSize:12,flexShrink:0}},'▶'),
+                      isAdmin&&h('button',{onClick:()=>handleRemoveExo(pe.id),style:{width:30,height:30,borderRadius:8,background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:12,flexShrink:0}},'🗑')
+                    )
+                  )
+                )
+              ),
+            addExoOpen&&h(AddExoModal,null),
+            editProg&&h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+              h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:540}},
+                h('h3',{style:{color:C.white,fontSize:16,fontWeight:700,marginBottom:14}},'Modifier le programme'),
+                ...pFields(editProg,setEditProg),
+                h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end',marginTop:10}},
+                  h('button',{onClick:()=>setEditProg(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 18px',cursor:'pointer'}},'Annuler'),
+                  h('button',{onClick:handleEditProg,disabled:saving,style:{...btn,opacity:saving?0.5:1}},saving?'Sauvegarde...':'Enregistrer')
+                )
+              )
+            ),
+            delProg&&h(DelProgModal,null)
+          );
+        }
+
+        // ── WEEKLY GRID VIEW (Azeoo style) ──
+        return h('div',null,
+          // Image header
+          h('div',{style:{position:'relative',borderRadius:20,overflow:'hidden',marginBottom:18,height:160}},
+            h('div',{style:{position:'absolute',inset:0,background:C.soft}}),
+            selectedProg.image_url&&h('img',{src:selectedProg.image_url,style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'},onError:e=>{e.target.style.display='none'}}),
+            h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(13,27,42,0.95) 0%,rgba(13,27,42,0.15) 100%)'}}),
+            h('div',{style:{position:'absolute',bottom:16,left:20,right:20,display:'flex',alignItems:'flex-end',justifyContent:'space-between'}},
+              h('div',null,
+                h('div',{style:{fontSize:20,fontWeight:800,color:C.white}},selectedProg.titre),
+                h('div',{style:{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}},
+                  h('span',{style:badge(catColors[selectedProg.categorie]||C.muted)},catLabels[selectedProg.categorie]||selectedProg.categorie),
+                  h('span',{style:badge(C.muted)},niveauLabels[selectedProg.niveau]||selectedProg.niveau),
+                  h('span',{style:badge(C.muted)},`${selectedProg.duree_heures}h`)
+                )
+              ),
+              h('div',{style:{textAlign:'right'}},
+                h('div',{style:{fontSize:22,fontWeight:800,color:C.gold}},`${selectedProg.prix_promo||selectedProg.prix}€`),
+                selectedProg.prix_promo&&h('div',{style:{fontSize:12,color:C.muted,textDecoration:'line-through'}},`${selectedProg.prix}€`)
+              )
+            )
+          ),
+          // Nav bar
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}},
+            h('button',{onClick:()=>setSelectedProg(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13}},'← Retour'),
+            h('div',{style:{flex:1}}),
+            isAdmin&&h('button',{
+              onClick:e=>handleTogglePublish(selectedProg,e),
+              style:{background:selectedProg.actif?`${C.green}22`:'rgba(255,255,255,0.06)',border:`1px solid ${selectedProg.actif?C.green:C.border}`,color:selectedProg.actif?C.green:C.muted,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13,fontWeight:600}
+            },selectedProg.actif?'🌐 Publié sur le site':'☁ Publier sur le site'),
+            isAdmin&&h('button',{onClick:()=>setEditProg({...selectedProg}),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13}},'✏️ Éditer'),
+            isAdmin&&h('button',{onClick:()=>setDelProg(selectedProg),style:{background:'transparent',border:`1px solid ${C.red}33`,color:C.red,borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:13}},'🗑')
+          ),
+          msg&&h('div',{style:{background:msg.startsWith('✅')?`${C.green}22`:`${C.red}22`,color:msg.startsWith('✅')?C.green:C.red,padding:'10px 16px',borderRadius:8,marginBottom:14,fontSize:13}},msg),
+          // Stats row
+          h('div',{style:{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}},
+            h('div',{style:{...card,flex:1,minWidth:120,padding:16,textAlign:'center'}},
+              h('div',{style:{fontSize:22,fontWeight:800,color:C.white}},progExos.length),
+              h('div',{style:{fontSize:11,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}},'Exercices')
+            ),
+            h('div',{style:{...card,flex:1,minWidth:120,padding:16,textAlign:'center'}},
+              h('div',{style:{fontSize:22,fontWeight:800,color:C.gold}},weeks.length),
+              h('div',{style:{fontSize:11,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}},'Semaines')
+            ),
+            h('div',{style:{...card,flex:1,minWidth:120,padding:16,textAlign:'center'}},
+              h('div',{style:{fontSize:22,fontWeight:800,color:C.green}},progExos.reduce((s,e)=>s+(e.sets||0),0)),
+              h('div',{style:{fontSize:11,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}},'Séries totales')
+            )
+          ),
+          // Week selector + Add week
+          h('div',{style:{display:'flex',gap:6,marginBottom:16,overflowX:'auto',paddingBottom:2,alignItems:'center'}},
+            h('div',{style:{fontSize:13,color:C.muted,fontWeight:600,marginRight:4,whiteSpace:'nowrap',flexShrink:0}},'Semaine :'),
+            ...weeks.map(w=>h('button',{key:w,onClick:()=>setSelWeek(w),
+              style:{background:selWeek===w?C.gold:'transparent',color:selWeek===w?'#000':C.muted,border:`1px solid ${selWeek===w?C.gold:C.border}`,
+                borderRadius:8,padding:'7px 18px',cursor:'pointer',fontSize:13,fontWeight:selWeek===w?700:400,whiteSpace:'nowrap',flexShrink:0}},`${w}`)),
+            isAdmin&&h('button',{onClick:()=>{const nw=weeks.length?Math.max(...weeks)+1:1;setSelWeek(nw);},
+              style:{background:'transparent',border:`1px dashed ${C.border}`,color:C.muted,borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,whiteSpace:'nowrap',flexShrink:0}},'+ Semaine')
+          ),
+          // 7-day grid (Azeoo style)
+          loadingExos?h('div',{style:{color:C.muted,textAlign:'center',padding:60}},'Chargement...'):
+          h('div',null,
+            // Column headers
+            h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8,marginBottom:8}},
+              ...DAYS_FR.map((d,i)=>h('div',{key:i,style:{textAlign:'center',fontSize:11,fontWeight:700,color:C.muted,textTransform:'uppercase',letterSpacing:'0.1em',padding:'4px 0'}},d))
+            ),
+            // Day cells
+            h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8}},
+              ...[1,2,3,4,5,6,7].map(dayNum=>{
+                const dayExos=progExos.filter(e=>(e.week_number||1)===selWeek&&(e.day_number||1)===dayNum);
+                const workout=workouts.find(w=>w.week_number===selWeek&&w.day_number===dayNum);
+                const hasContent=dayExos.length>0||workout;
+                const totalSets=dayExos.reduce((s,e)=>s+(e.sets||0),0);
+                const woName=workout?.name||null;
+                return h('div',{key:dayNum,
+                  style:{background:hasContent?C.card:C.soft,border:`1px solid ${hasContent?C.border:'transparent'}`,borderRadius:12,padding:10,minHeight:120,display:'flex',flexDirection:'column',gap:6,
+                    cursor:hasContent?'pointer':'default',transition:'all 0.15s'},
+                  onClick:hasContent?()=>setSelectedDay({week:selWeek,day:dayNum}):undefined,
+                  onMouseEnter:hasContent?e=>{e.currentTarget.style.borderColor=C.gold;}:undefined,
+                  onMouseLeave:hasContent?e=>{e.currentTarget.style.borderColor=C.border;}:undefined
+                },
+                  // Day number badge
+                  h('div',{style:{width:28,height:28,borderRadius:8,background:hasContent?`${C.gold}22`:C.soft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:hasContent?C.gold:C.muted,marginBottom:2,border:`1px solid ${hasContent?`${C.gold}44`:'transparent'}`}},dayNum),
+                  // Workout name
+                  woName?h('div',{style:{fontSize:11,fontWeight:700,color:C.white,lineHeight:1.3,marginBottom:2}},woName):null,
+                  // Stats
+                  hasContent&&h('div',{style:{fontSize:10,color:C.muted,lineHeight:1.8}},
+                    dayExos.length>0&&h('div',null,`${dayExos.length} exercice${dayExos.length>1?'s':''}`),
+                    totalSets>0&&h('div',null,`${totalSets} séries`)
+                  ),
+                  // Exercise thumbnails preview (max 3)
+                  dayExos.length>0&&h('div',{style:{display:'flex',gap:3,marginTop:'auto',flexWrap:'wrap'}},
+                    ...dayExos.slice(0,3).map(pe=>pe.exercise?.image_filename
+                      ?h('img',{key:pe.id,src:'https://cdn.azeoo.com/exercises/small-wide/'+pe.exercise.image_filename,
+                          style:{width:28,height:28,borderRadius:5,objectFit:'cover',opacity:0.8},onError:e=>{e.target.style.display='none'}})
+                      :h('div',{key:pe.id,style:{width:28,height:28,borderRadius:5,background:C.soft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11}},'💪')
+                    ),
+                    dayExos.length>3&&h('div',{style:{width:28,height:28,borderRadius:5,background:`${C.gold}22`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:C.gold,fontWeight:700}},`+${dayExos.length-3}`)
+                  ),
+                  // Add button (admin, empty cells)
+                  !hasContent&&isAdmin&&h('button',{onClick:e=>{e.stopPropagation();setSelectedDay({week:selWeek,day:dayNum});setAddExoOpen(true);setExoSearch('');if(!allExos.length)sb.from('exercises').select('id,name,tags').order('name').limit(2000).then(({data})=>setAllExos(data||[]));setAForm({exercise_id:'',week_number:selWeek,day_number:dayNum,order_index:1,sets:3,reps:12,rest_seconds:60,charge:'',notes:''}); },
+                    style:{width:'100%',marginTop:'auto',background:'transparent',border:`1px dashed ${C.border}`,color:C.muted,borderRadius:8,padding:'5px 0',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',gap:4}
+                  },'+ Ajouter')
+                );
+              })
+            )
+          ),
+          addExoOpen&&h(AddExoModal,null),
+          editProg&&h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+            h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:540}},
+              h('h3',{style:{color:C.white,fontSize:16,fontWeight:700,marginBottom:14}},'Modifier le programme'),
+              ...pFields(editProg,setEditProg),
+              h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end',marginTop:10}},
+                h('button',{onClick:()=>setEditProg(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 18px',cursor:'pointer'}},'Annuler'),
+                h('button',{onClick:handleEditProg,disabled:saving,style:{...btn,opacity:saving?0.5:1}},saving?'Sauvegarde...':'Enregistrer')
+              )
+            )
+          ),
+          delProg&&h(DelProgModal,null)
+        );
+      }
+
+      // ── GRID VIEW ──
+      const filteredProgs=filter?progs.filter(p=>p.categorie===filter):progs;
+      return h('div',null,
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}},
+          h('div',null,
+            h('h1',{style:{fontSize:24,fontWeight:700,color:C.white}},'Programmes'),
+            h('p',{style:{color:C.muted,fontSize:14,marginTop:4}},`${progs.length} programme${progs.length!==1?'s':''} · Taya Fitness`)
+          ),
+          isAdmin&&h('button',{onClick:()=>{setPForm(EP);setCreateOpen(true);},style:{...btn,fontSize:13,padding:'10px 20px'}},'+ Créer un programme')
+        ),
+        h('div',{style:{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}},
+          ...[['','Tous',C.white],['musculation','Musculation',C.green],['perte-de-poids','Perte de poids',C.blue],['post-partum','Post-Partum',C.purple],['force','Force',C.gold]].map(([val,label,color])=>
+            h('button',{key:val,onClick:()=>setFilter(val),style:{background:'transparent',color:filter===val?color:C.muted,border:`1px solid ${filter===val?color:C.border}`,borderRadius:8,padding:'7px 14px',fontSize:12,cursor:'pointer',fontWeight:filter===val?600:400}},label)
+          )
+        ),
+        msg&&h('div',{style:{background:msg.startsWith('✅')?`${C.green}22`:`${C.red}22`,color:msg.startsWith('✅')?C.green:C.red,padding:'10px 16px',borderRadius:8,marginBottom:16,fontSize:13}},msg),
+        loading?h('div',{style:{color:C.muted,textAlign:'center',padding:60}},'Chargement...'):
+        progs.length===0?
+          h('div',{style:{...card,textAlign:'center',padding:48,color:C.muted}},
+            h('div',{style:{fontSize:36,marginBottom:12}},'🏋️'),
+            h('div',{style:{fontWeight:600,color:C.white,marginBottom:8}},'Aucun programme encore'),
+            isAdmin&&h('button',{onClick:()=>{setPForm(EP);setCreateOpen(true);},style:{...btn,marginTop:12,fontSize:13}},'Créer le premier programme')
+          ):
+        h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}},
+          ...filteredProgs.map(prog=>
+            h('div',{key:prog.id,className:'prog-card',style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden',position:'relative'}},
+              h('div',{style:{position:'relative',paddingBottom:'56%',overflow:'hidden',background:C.soft}},
+                prog.image_url&&h('img',{src:prog.image_url,alt:prog.titre,onClick:()=>handleSelectProg(prog),style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',cursor:'pointer'},onError:e=>{e.target.style.display='none'}}),
+                isAdmin&&h('div',{style:{position:'absolute',top:8,right:8,display:'flex',gap:4}},
+                  h('button',{onClick:e=>{e.stopPropagation();setEditProg({...prog});},style:{width:28,height:28,borderRadius:7,background:'rgba(0,0,0,0.55)',border:'none',color:'#fff',cursor:'pointer',fontSize:12}},'✏️'),
+                  h('button',{onClick:e=>{e.stopPropagation();setDelProg(prog);},style:{width:28,height:28,borderRadius:7,background:'rgba(0,0,0,0.55)',border:'none',color:C.red,cursor:'pointer',fontSize:12}},'🗑')
+                ),
+                isAdmin&&h('button',{
+                  onClick:e=>handleTogglePublish(prog,e),
+                  title:prog.actif?'Dépublier du site':'Publier sur le site',
+                  style:{position:'absolute',bottom:8,left:8,display:'flex',alignItems:'center',gap:5,padding:'4px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:prog.actif?`${C.green}cc`:'rgba(0,0,0,0.6)',color:prog.actif?'#fff':C.muted,backdropFilter:'blur(4px)'}
+                },prog.actif?'🌐 Publié':'☁ Hors ligne'),
+                !isAdmin&&!prog.actif&&h('div',{style:{position:'absolute',bottom:8,left:8,...badge(C.muted)}},'Inactif')
+              ),
+              h('div',{onClick:()=>handleSelectProg(prog),style:{padding:18,cursor:'pointer'}},
+                h('div',{style:{fontSize:14,fontWeight:700,color:C.white,marginBottom:10,lineHeight:1.3}},prog.titre),
+                h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}},
+                  h('span',{style:badge(catColors[prog.categorie]||C.muted)},catLabels[prog.categorie]||prog.categorie),
+                  h('span',{style:badge(C.muted)},niveauLabels[prog.niveau]||prog.niveau)
+                ),
+                h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+                  h('span',{style:{fontSize:12,color:C.muted}},`⏱ ${prog.duree_heures}h`),
+                  h('div',null,
+                    prog.prix_promo&&h('span',{style:{fontSize:12,color:C.muted,textDecoration:'line-through',marginRight:6}},`${prog.prix}€`),
+                    h('span',{style:{fontSize:15,fontWeight:700,color:C.gold}},`${prog.prix_promo||prog.prix}€`)
+                  )
+                ),
+                h('div',{style:{marginTop:10,fontSize:12,color:C.muted}},'👁 Voir les exercices →')
+              )
+            )
+          )
+        ),
+        // Modals
+        createOpen&&h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+          h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:540}},
+            h('h3',{style:{color:C.white,fontSize:16,fontWeight:700,marginBottom:14}},'Créer un programme'),
+            ...pFields(pForm,setPForm),
+            h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end',marginTop:10}},
+              h('button',{onClick:()=>setCreateOpen(false),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 18px',cursor:'pointer'}},'Annuler'),
+              h('button',{onClick:handleCreate,disabled:saving||!pForm.titre,style:{...btn,opacity:saving||!pForm.titre?0.5:1}},saving?'Création...':'Créer')
+            )
+          )
+        ),
+        editProg&&!selectedProg&&h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:1000,padding:'32px 16px',overflowY:'auto'}},
+          h('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:28,width:'100%',maxWidth:540}},
+            h('h3',{style:{color:C.white,fontSize:16,fontWeight:700,marginBottom:14}},'Modifier le programme'),
+            ...pFields(editProg,setEditProg),
+            h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end',marginTop:10}},
+              h('button',{onClick:()=>setEditProg(null),style:{background:'transparent',border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:'10px 18px',cursor:'pointer'}},'Annuler'),
+              h('button',{onClick:handleEditProg,disabled:saving,style:{...btn,opacity:saving?0.5:1}},saving?'Sauvegarde...':'Enregistrer')
+            )
+          )
+        ),
+        delProg&&h(DelProgModal,null)
+      );
+    }
+
+    // ── Exercices ─────────────────────────────────────────────────────────────
+    const ADMIN_EMAILS = ['fumeysarah@yahoo.fr','contact@sergepaulmier.com','contact@tayafitness.com'];
+    const EX_MUSCLES = ['Abs','Adductors','Back','Biceps','Calves','Chest','Forearms','Glutes','Hamstrings','Lower Back','Quads','Shoulders','Triceps'];
+    const EX_TYPES = ['Bodyweight','Cardio','Cross-training','Stretching'];
+    const typeColors = {Bodyweight:C.green,Cardio:C.red,'Cross-training':C.gold,Stretching:C.blue};
+
+    function Exercices() {
+      const [exos,setExos] = useState([]);
+      const [loading,setLoading] = useState(true);
+      const [search,setSearch] = useState('');
+      const [muscle,setMuscle] = useState('');
+      const [mtype,setMtype] = useState('');
+      const [page,setPage] = useState(0);
+      const [ytModal,setYtModal] = useState(null);
+      const [isAdmin,setIsAdmin] = useState(false);
+      // CRUD modals
+      const [addOpen,setAddOpen] = useState(false);
+      const [editExo,setEditExo] = useState(null);
+      const [delExo,setDelExo] = useState(null);
+      const [form,setForm] = useState({name:'',youtube_id:'',tags:''});
+      const [saving,setSaving] = useState(false);
+      const [msg,setMsg] = useState('');
+
+      useEffect(() => {
+        sb.auth.getSession().then(({data:{session}}) => {
+          if (session?.user) setIsAdmin(ADMIN_EMAILS.includes(session.user.email));
+        });
+        sb.from('exercises').select('*').order('name').limit(2000)
+          .then(({data}) => { setExos(data||[]); setLoading(false); });
+      }, []);
+
+      const PER_PAGE = 60;
+      const imgUrl = i => i ? 'https://cdn.azeoo.com/exercises/small-wide/'+i : null;
+
+      const filtered = useMemo(() => exos.filter(e => {
+        const s = search.toLowerCase();
+        const tags = e.tags || [];
+        return (!s || e.name.toLowerCase().includes(s))
+          && (!muscle || tags.includes(muscle))
+          && (!mtype || tags.includes(mtype));
+      }), [exos, search, muscle, mtype]);
+
+      const totalPages = Math.ceil(filtered.length / PER_PAGE);
+      const visible = filtered.slice(page*PER_PAGE, (page+1)*PER_PAGE);
+      const resetPage = () => setPage(0);
+
+      async function handleAdd() {
+        setSaving(true);
+        const tags = form.tags.split(',').map(t=>t.trim()).filter(Boolean);
+        const {data,error} = await sb.from('exercises')
+          .insert({name:form.name, youtube_id:form.youtube_id||null, tags})
+          .select().single();
+        if (!error && data) {
+          setExos(prev => [...prev,data].sort((a,b)=>a.name.localeCompare(b.name)));
+          setAddOpen(false); setForm({name:'',youtube_id:'',tags:''});
+          setMsg('✅ Exercice ajouté');
+        } else setMsg('❌ Erreur: '+(error?.message||''));
+        setSaving(false); setTimeout(()=>setMsg(''),4000);
+      }
+
+      async function handleEdit() {
+        setSaving(true);
+        const {error} = await sb.from('exercises')
+          .update({name:editExo.name, youtube_id:editExo.youtube_id||null})
+          .eq('id',editExo.id);
+        if (!error) {
+          setExos(prev => prev.map(e => e.id===editExo.id ? {...e,...editExo} : e));
+          setEditExo(null); setMsg('✅ Exercice mis à jour');
+        } else setMsg('❌ Erreur: '+(error?.message||''));
+        setSaving(false); setTimeout(()=>setMsg(''),4000);
+      }
+
+      async function handleDelete(exo) {
+        const {error} = await sb.from('exercises').delete().eq('id',exo.id);
+        if (!error) { setExos(prev=>prev.filter(e=>e.id!==exo.id)); setMsg('🗑️ Exercice supprimé'); }
+        else setMsg('❌ Erreur: '+(error?.message||''));
+        setDelExo(null); setTimeout(()=>setMsg(''),4000);
+      }
+
+      const modalBg = {position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000};
+      const modalBox = {background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:32,width:480,maxWidth:'90vw'};
+      const fldLabel = {fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:C.gold,marginBottom:6,marginTop:16};
+
+      return h('div', null,
+        // YouTube modal
+        ytModal && h('div', {className:'yt-modal', onClick:()=>setYtModal(null)},
+          h('div', {style:{textAlign:'center'}, onClick:e=>e.stopPropagation()},
+            h('div', {style:{color:C.white,marginBottom:12,fontSize:16,fontWeight:600}}, ytModal.name),
+            h('iframe', {src:`https://www.youtube.com/embed/${ytModal.youtube_id}?autoplay=1`, allow:'autoplay; encrypted-media', allowFullScreen:true}),
+            h('button', {onClick:()=>setYtModal(null), style:{marginTop:16,background:C.card,color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 20px',cursor:'pointer'}}, 'Fermer')
+          )
+        ),
+
+        // Add modal
+        addOpen && h('div', {style:modalBg, onClick:()=>setAddOpen(false)},
+          h('div', {style:modalBox, onClick:e=>e.stopPropagation()},
+            h('h2', {style:{fontSize:18,fontWeight:700,color:C.white,marginBottom:4}}, 'Ajouter un exercice'),
+            h('p', {style:{color:C.muted,fontSize:13,marginBottom:8}}, 'Entrez le nom et l\'URL YouTube (optionnel)'),
+            h('div', {style:fldLabel}, 'Nom de l\'exercice *'),
+            h('input', {style:inp, placeholder:'Ex: Goblet Squat', value:form.name, onChange:e=>setForm(f=>({...f,name:e.target.value}))}),
+            h('div', {style:fldLabel}, 'YouTube ID ou URL'),
+            h('input', {style:inp, placeholder:'Ex: dGKl7_bK5X4 ou https://youtube.com/watch?v=...', value:form.youtube_id,
+              onChange:e=>{
+                let v = e.target.value.trim();
+                const m = v.match(/(?:v=|youtu\.be\/)([^&\s]{11})/);
+                if (m) v = m[1];
+                setForm(f=>({...f,youtube_id:v}));
+              }
+            }),
+            h('div', {style:fldLabel}, 'Tags (virgule séparés)'),
+            h('input', {style:inp, placeholder:'Ex: Bodyweight, Glutes, Quads, No equipment', value:form.tags, onChange:e=>setForm(f=>({...f,tags:e.target.value}))}),
+            h('div', {style:{display:'flex',gap:12,marginTop:24}},
+              h('button', {onClick:()=>setAddOpen(false), style:{...btn,background:'transparent',color:C.muted,border:`1px solid ${C.border}`,flex:1}}, 'Annuler'),
+              h('button', {onClick:handleAdd, disabled:!form.name||saving, style:{...btn,flex:1,opacity:(!form.name||saving)?0.5:1}}, saving?'Enregistrement...':'Ajouter')
+            )
+          )
+        ),
+
+        // Edit modal
+        editExo && h('div', {style:modalBg, onClick:()=>setEditExo(null)},
+          h('div', {style:modalBox, onClick:e=>e.stopPropagation()},
+            h('h2', {style:{fontSize:18,fontWeight:700,color:C.white,marginBottom:4}}, 'Modifier l\'exercice'),
+            h('div', {style:fldLabel}, 'Nom'),
+            h('input', {style:inp, value:editExo.name, onChange:e=>setEditExo(x=>({...x,name:e.target.value}))}),
+            h('div', {style:fldLabel}, 'YouTube ID (remplacer la vidéo)'),
+            h('input', {style:inp, placeholder:'ID YouTube (ex: dGKl7_bK5X4)', value:editExo.youtube_id||'',
+              onChange:e=>{
+                let v = e.target.value.trim();
+                const m = v.match(/(?:v=|youtu\.be\/)([^&\s]{11})/);
+                if (m) v = m[1];
+                setEditExo(x=>({...x,youtube_id:v||null}));
+              }
+            }),
+            editExo.youtube_id && h('a', {href:`https://www.youtube.com/watch?v=${editExo.youtube_id}`,target:'_blank',style:{display:'block',marginTop:8,color:C.blue,fontSize:12}}, `▶ Voir: youtube.com/watch?v=${editExo.youtube_id}`),
+            h('div', {style:{display:'flex',gap:12,marginTop:24}},
+              h('button', {onClick:()=>setEditExo(null), style:{...btn,background:'transparent',color:C.muted,border:`1px solid ${C.border}`,flex:1}}, 'Annuler'),
+              h('button', {onClick:handleEdit, disabled:saving, style:{...btn,flex:1,opacity:saving?0.5:1}}, saving?'Enregistrement...':'Enregistrer')
+            )
+          )
+        ),
+
+        // Delete confirm
+        delExo && h('div', {style:modalBg, onClick:()=>setDelExo(null)},
+          h('div', {style:{...modalBox,maxWidth:380}, onClick:e=>e.stopPropagation()},
+            h('h2', {style:{fontSize:18,fontWeight:700,color:C.red,marginBottom:12}}, 'Supprimer l\'exercice ?'),
+            h('p', {style:{color:C.white,marginBottom:8}}, `"${delExo.name}"`),
+            h('p', {style:{color:C.muted,fontSize:13,marginBottom:24}}, 'Cette action est irréversible.'),
+            h('div', {style:{display:'flex',gap:12}},
+              h('button', {onClick:()=>setDelExo(null), style:{...btn,background:'transparent',color:C.muted,border:`1px solid ${C.border}`,flex:1}}, 'Annuler'),
+              h('button', {onClick:()=>handleDelete(delExo), style:{...btn,background:C.red,flex:1}}, 'Supprimer')
+            )
+          )
+        ),
+
+        // Header
+        h('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}},
+          h('div', null,
+            h('h1', {style:{fontSize:24,fontWeight:700,color:C.white}}, 'Bibliothèque d\'Exercices'),
+            h('p', {style:{color:C.muted,fontSize:14,marginTop:4}},
+              loading ? 'Chargement...' : `${filtered.length} exercice(s) · ${exos.length} au total · Supabase`)
+          ),
+          h('div', {style:{display:'flex',gap:10}},
+            isAdmin && h('button', {onClick:()=>setAddOpen(true), style:{...btn,fontSize:13,padding:'10px 18px'}}, '+ Ajouter un exercice'),
+            h('a', {href:'https://tayafitness.azeoo.com/exercises', target:'_blank', style:{...btn,background:'transparent',color:C.muted,border:`1px solid ${C.border}`,textDecoration:'none',fontSize:13,padding:'10px 18px'}}, 'Azeoo ↗')
+          )
+        ),
+
+        // Flash message
+        msg && h('div', {style:{background:'rgba(255,255,255,0.07)',border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 16px',marginBottom:16,fontSize:13,color:C.white}}, msg),
+
+        // Filters
+        h('div', {style:{display:'flex',gap:12,marginBottom:16,flexWrap:'wrap'}},
+          h('input', {style:{...inp,width:280}, placeholder:'🔍 Rechercher un exercice...', value:search, onChange:e=>{setSearch(e.target.value);resetPage();}}),
+          h('select', {style:{...inp,width:180}, value:muscle, onChange:e=>{setMuscle(e.target.value);resetPage();}},
+            h('option', {value:''}, 'Tous les muscles'),
+            ...EX_MUSCLES.map(m => h('option', {key:m,value:m}, m))
+          ),
+          h('select', {style:{...inp,width:180}, value:mtype, onChange:e=>{setMtype(e.target.value);resetPage();}},
+            h('option', {value:''}, 'Tous les types'),
+            ...EX_TYPES.map(t => h('option', {key:t,value:t}, t))
+          )
+        ),
+
+        // Pagination bar
+        h('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}},
+          h('p', {style:{color:C.muted,fontSize:13}}, `${visible.length} affichés sur ${filtered.length} · Page ${page+1}/${totalPages||1}`),
+          h('div', {style:{display:'flex',gap:8}},
+            h('button', {disabled:page===0, onClick:()=>setPage(p=>p-1), style:{background:'transparent',color:page===0?C.border:C.muted,border:`1px solid ${page===0?C.border:C.muted}`,borderRadius:8,padding:'6px 14px',cursor:page===0?'default':'pointer',fontSize:13}}, '← Préc'),
+            h('button', {disabled:page>=totalPages-1, onClick:()=>setPage(p=>p+1), style:{background:'transparent',color:page>=totalPages-1?C.border:C.muted,border:`1px solid ${page>=totalPages-1?C.border:C.muted}`,borderRadius:8,padding:'6px 14px',cursor:page>=totalPages-1?'default':'pointer',fontSize:13}}, 'Suiv →')
+          )
+        ),
+
+        // Cards grid
+        loading ? h('p', {style:{color:C.muted}}, 'Chargement des exercices...') :
+        h('div', {style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:16}},
+          ...visible.map((exo) => {
+            const thumb = imgUrl(exo.image_filename);
+            const tags = exo.tags || [];
+            const muscleTags = tags.filter(t => EX_MUSCLES.includes(t)).slice(0,2);
+            const typeTags = tags.filter(t => EX_TYPES.includes(t)).slice(0,1);
+            return h('div', {key:exo.id, className:'exo-card',
+              style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,overflow:'hidden',transition:'transform 0.2s',position:'relative'},
+              onClick:()=>exo.youtube_id && setYtModal(exo)},
+              // Admin buttons
+              isAdmin && h('div', {style:{position:'absolute',top:8,right:8,zIndex:10,display:'flex',gap:4}, onClick:e=>e.stopPropagation()},
+                h('button', {onClick:()=>setEditExo(exo), title:'Modifier',
+                  style:{background:'rgba(0,0,0,0.7)',color:C.white,border:'none',borderRadius:6,padding:'4px 7px',cursor:'pointer',fontSize:12}}, '✏️'),
+                h('button', {onClick:()=>setDelExo(exo), title:'Supprimer',
+                  style:{background:'rgba(255,0,0,0.7)',color:C.white,border:'none',borderRadius:6,padding:'4px 7px',cursor:'pointer',fontSize:12}}, '🗑')
+              ),
+              h('div', {style:{position:'relative',paddingBottom:'60%',background:C.soft}},
+                thumb && h('img', {src:thumb, alt:exo.name, style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}, onError:e=>{e.target.style.display='none'}}),
+                exo.youtube_id && h('div', {style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.3)'}},
+                  h('div', {style:{width:44,height:44,background:'rgba(255,0,0,0.9)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},
+                    h('span', {style:{marginLeft:3}}, '▶')
+                  )
+                ),
+                !exo.youtube_id && h('a', {href:`https://www.youtube.com/results?search_query=AZEOO+${encodeURIComponent(exo.name)}`,target:'_blank',
+                  onClick:e=>e.stopPropagation(),
+                  style:{position:'absolute',bottom:8,right:8,background:'rgba(255,0,0,0.85)',color:'#fff',borderRadius:6,padding:'4px 8px',fontSize:10,textDecoration:'none',fontWeight:600}}, 'YT ↗')
+              ),
+              h('div', {style:{padding:12}},
+                h('div', {style:{fontSize:12,fontWeight:600,color:C.white,marginBottom:8,lineHeight:1.3}}, exo.name),
+                h('div', {style:{display:'flex',gap:4,flexWrap:'wrap'}},
+                  ...typeTags.map(t => h('span', {key:t,style:badge(typeColors[t]||C.muted)}, t)),
+                  ...muscleTags.map(m => h('span', {key:m,style:badge(C.muted)}, m))
+                )
+              )
+            );
+          })
+        )
+      );
+    }
+
+    // ── Abonnements ──────────────────────────────────────────────────────────
+    function Abonnements() {
+      const [abos,setAbos]=useState([]);
+      const [filter,setFilter]=useState('all');
+      const [loading,setLoading]=useState(true);
+      useEffect(()=>{
+        sb.from('abonnements').select('*,profiles(full_name,email)').order('created_at',{ascending:false})
+          .then(({data})=>{setAbos(data||[]);setLoading(false);});
+      },[]);
+      const filtered=abos.filter(a=>filter==='all'||a.statut===filter);
+      const pc={starter:C.blue,performance:C.gold,vip:'#b48cff'};
+      const counts={all:abos.length,active:abos.filter(a=>a.statut==='active').length,cancelled:abos.filter(a=>a.statut==='cancelled').length,past_due:abos.filter(a=>a.statut==='past_due').length};
+      return h('div',null,
+        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:24,color:C.white}},'Abonnements'),
+        h('div',{style:{display:'flex',gap:10,marginBottom:24}},
+          ...['all','active','past_due','cancelled'].map((v)=>{
+            const labels={all:'Tous',active:'Actifs',past_due:'En retard',cancelled:'Annulés'};
+            const colors={all:C.white,active:C.green,past_due:C.gold,cancelled:C.red};
+            return h('button',{key:v,onClick:()=>setFilter(v),style:{background:'transparent',color:filter===v?colors[v]:C.muted,border:`1px solid ${filter===v?colors[v]:C.border}`,borderRadius:10,padding:'8px 16px',fontSize:13,cursor:'pointer'}},`${labels[v]} (${counts[v]||0})`);
+          })
+        ),
+        h('div',{style:card},
+          loading?h('p',{style:{color:C.muted}},'Chargement...'):
+          h('table',{style:{width:'100%',borderCollapse:'collapse'}},
+            h('thead',null,h('tr',null,...['Client','Plan','Statut','Renouvellement'].map(l=>h('th',{key:l,style:th},l)))),
+            h('tbody',null,...filtered.map((a,i)=>h('tr',{key:i},
+              h('td',{style:td},h('div',null,a.profiles?.full_name||'—',h('div',{style:{fontSize:12,color:C.muted}},a.profiles?.email||''))),
+              h('td',{style:td},h('span',{style:badge(pc[a.plan]||C.muted)},a.plan)),
+              h('td',{style:td},h('span',{style:badge(a.statut==='active'?C.green:a.statut==='past_due'?C.gold:C.red)},a.statut)),
+              h('td',{style:{...td,color:C.muted}},a.current_period_end?new Date(a.current_period_end).toLocaleDateString('fr-FR'):'—')
+            )))
+          )
+        )
+      );
+    }
+
+    // ── Revenus ──────────────────────────────────────────────────────────────
+    function Revenus() {
+      const [abos,setAbos]=useState([]);
+      const [loading,setLoading]=useState(true);
+      useEffect(()=>{
+        sb.from('abonnements').select('plan,statut').eq('statut','active')
+          .then(({data})=>{setAbos(data||[]);setLoading(false);});
+      },[]);
+      const px={starter:49,performance:99,vip:199};
+      const mrr=abos.reduce((s,a)=>s+(px[a.plan]||0),0);
+      const cnt={starter:0,performance:0,vip:0};
+      abos.forEach(a=>{if(cnt[a.plan]!==undefined)cnt[a.plan]++;});
+      return h('div',null,
+        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:24,color:C.white}},'Revenus'),
+        loading?h('p',{style:{color:C.muted}},'Chargement...'):h('div',null,
+          h('div',{style:{display:'flex',gap:16,marginBottom:32}},
+            ...[
+              {label:'MRR mensuel',value:`${mrr}€`,color:C.green},
+              {label:'ARR annuel projeté',value:`${mrr*12}€`,color:C.blue},
+              {label:'Abonnés actifs',value:abos.length,color:C.gold},
+            ].map(s=>h('div',{key:s.label,style:{background:C.soft,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',flex:1}},
+              h('div',{style:{fontSize:28,fontWeight:800,color:s.color}},s.value),
+              h('div',{style:{fontSize:13,color:C.muted,marginTop:4}},s.label)
+            ))
+          ),
+          h('div',{style:card},
+            h('h3',{style:{fontSize:16,fontWeight:600,marginBottom:20,color:C.white}},'Répartition par plan'),
+            ...['starter','performance','vip'].map(plan=>h('div',{key:plan,style:{marginBottom:16}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
+                h('span',{style:{fontSize:14,textTransform:'capitalize',color:C.white}},plan),
+                h('span',{style:{fontSize:14,color:C.muted}},`${cnt[plan]} × ${px[plan]}€ = `,h('strong',{style:{color:C.gold}},`${cnt[plan]*px[plan]}€/mois`))
+              ),
+              h('div',{style:{background:C.border,borderRadius:100,height:6}},
+                h('div',{style:{background:C.gold,borderRadius:100,height:6,width:mrr>0?`${cnt[plan]*px[plan]/mrr*100}%`:'0%'}})
+              )
+            ))
+          )
+        )
+      );
+    }
+
+    // ── Emails ───────────────────────────────────────────────────────────────
+    function Emails() {
+      const [subs,setSubs]=useState([]);
+      const [subject,setSubject]=useState('');
+      const [body,setBody]=useState('');
+      const [sending,setSending]=useState(false);
+      const [msg,setMsg]=useState('');
+      useEffect(()=>{
+        sb.from('newsletter').select('email,created_at').order('created_at',{ascending:false}).then(({data})=>setSubs(data||[]));
+      },[]);
+      async function send(e){
+        e.preventDefault();setSending(true);
+        await sb.from('email_log').insert({subject,body,recipients:subs.length,statut:'sent',created_at:new Date().toISOString()});
+        setMsg(`Campagne "${subject}" enregistrée — ${subs.length} destinataires`);
+        setSubject('');setBody('');setSending(false);
+        setTimeout(()=>setMsg(''),5000);
+      }
+      return h('div',null,
+        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:8,color:C.white}},'Campagnes mail'),
+        h('p',{style:{color:C.muted,fontSize:14,marginBottom:24}},`${subs.length} abonnés à la newsletter`),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}},
+          h('div',{style:card},
+            h('h3',{style:{fontSize:16,fontWeight:600,marginBottom:20,color:C.white}},'Nouvelle campagne'),
+            h('form',{onSubmit:send},
+              h('div',{style:{marginBottom:16}},
+                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:C.gold,marginBottom:6}},'Objet'),
+                h('input',{style:inp,value:subject,onChange:e=>setSubject(e.target.value),placeholder:'Ex: Nouveaux programmes 🔥',required:true})
+              ),
+              h('div',{style:{marginBottom:16}},
+                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:C.gold,marginBottom:6}},'Message'),
+                h('textarea',{style:{...inp,resize:'vertical'},rows:8,value:body,onChange:e=>setBody(e.target.value),placeholder:'Bonjour,\n\nÉcris ton message ici...',required:true})
+              ),
+              msg&&h('div',{style:{color:C.green,fontSize:13,marginBottom:12}},msg),
+              h('button',{style:btn,disabled:sending||subs.length===0},sending?'Envoi...':'Envoyer la campagne')
+            )
+          ),
+          h('div',{style:card},
+            h('h3',{style:{fontSize:16,fontWeight:600,marginBottom:16,color:C.white}},'Abonnés récents'),
+            h('div',{style:{maxHeight:400,overflowY:'auto'}},
+              ...subs.slice(0,30).map((s,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:`1px solid ${C.border}`,fontSize:13}},
+                h('span',{style:{color:C.white}},s.email),
+                h('span',{style:{color:C.muted}},new Date(s.created_at).toLocaleDateString('fr-FR'))
+              )),
+              subs.length===0&&h('p',{style:{color:C.muted,fontSize:14}},'Aucun abonné.')
+            )
+          )
+        )
+      );
+    }
+
+    // ── Tâches ───────────────────────────────────────────────────────────────
+    function Taches() {
+      const [taches,setTaches]=useState([]);
+      const [titre,setTitre]=useState('');
+      const [prio,setPrio]=useState('normale');
+      useEffect(()=>{load();}, []);
+      async function load(){const {data}=await sb.from('taches').select('*').order('created_at',{ascending:false});setTaches(data||[]);}
+      async function add(e){e.preventDefault();if(!titre.trim())return;await sb.from('taches').insert({titre,statut:'todo',priorite:prio});setTitre('');load();}
+      async function toggle(id,done){await sb.from('taches').update({statut:done?'todo':'done'}).eq('id',id);load();}
+      async function del(id){await sb.from('taches').delete().eq('id',id);load();}
+      const pc={haute:C.red,normale:C.gold,basse:C.blue};
+      const todo=taches.filter(t=>t.statut!=='done');
+      const done=taches.filter(t=>t.statut==='done');
+      return h('div',null,
+        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:24,color:C.white}},'Tâches'),
+        h('div',{style:{...card,marginBottom:24}},
+          h('form',{onSubmit:add,style:{display:'flex',gap:12}},
+            h('input',{style:{...inp,flex:1},value:titre,onChange:e=>setTitre(e.target.value),placeholder:'Nouvelle tâche...'}),
+            h('select',{style:{...inp,width:140},value:prio,onChange:e=>setPrio(e.target.value)},
+              h('option',{value:'haute'},'🔴 Haute'),
+              h('option',{value:'normale'},'🟡 Normale'),
+              h('option',{value:'basse'},'🔵 Basse')
+            ),
+            h('button',{style:btn},'Ajouter')
+          )
+        ),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}},
+          h('div',{style:card},
+            h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:16,color:C.white}},`À faire (${todo.length})`),
+            todo.length===0?h('p',{style:{color:C.muted,fontSize:14}},'Tout est fait 🎉'):
+            todo.map((t,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}},
+              h('button',{onClick:()=>toggle(t.id,false),style:{width:20,height:20,borderRadius:4,border:`2px solid ${C.border}`,background:'transparent',cursor:'pointer',flexShrink:0}}),
+              h('span',{style:{flex:1,fontSize:14,color:C.white}},t.titre),
+              h('span',{style:badge(pc[t.priorite]||C.muted)},t.priorite),
+              h('button',{onClick:()=>del(t.id),style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:16}},'✕')
+            ))
+          ),
+          h('div',{style:card},
+            h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:16,color:C.white}},`Terminées (${done.length})`),
+            done.length===0?h('p',{style:{color:C.muted,fontSize:14}},'Aucune tâche terminée.'):
+            done.map((t,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}},
+              h('button',{onClick:()=>toggle(t.id,true),style:{width:20,height:20,borderRadius:4,border:'none',background:C.green,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}},'✓'),
+              h('span',{style:{flex:1,fontSize:14,textDecoration:'line-through',color:C.muted}},t.titre),
+              h('button',{onClick:()=>del(t.id),style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:16}},'✕')
+            ))
+          )
+        )
+      );
+    }
+
+    createRoot(document.getElementById('root')).render(h(App));
+  </script>
+</body>
 </html>
