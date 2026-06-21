@@ -30,17 +30,22 @@ const S = {
 };
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function Login() {
-  const [loading, setLoading] = useState(false);
+function Login({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function loginGoogle() {
+  async function submit(e) {
+    e.preventDefault();
     setLoading(true); setErr("");
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) { setErr("Erreur de connexion. Réessaie."); setLoading(false); }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { setErr("Email ou mot de passe incorrect"); setLoading(false); return; }
+    if (data.user.email !== ADMIN_EMAIL) {
+      await sb.auth.signOut();
+      setErr("Accès réservé à l'administratrice"); setLoading(false); return;
+    }
+    onLogin(data.user);
   }
 
   return (
@@ -54,15 +59,20 @@ function Login() {
           <p style={{ color: COLORS.muted, marginTop: 8, fontSize: 14 }}>Espace de gestion — Sarah Paulmier</p>
         </div>
         <div style={S.card}>
-          <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>
-            Connecte-toi avec ton compte Google pour accéder au CRM.
-          </p>
-          {err && <div style={{ background: `${COLORS.red}22`, color: COLORS.red, padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{err}</div>}
-          <button onClick={loginGoogle} disabled={loading}
-            style={{ width: "100%", padding: "14px", borderRadius: 10, border: `1px solid ${COLORS.border}`, background: COLORS.bgSoft, color: COLORS.white, fontWeight: 600, fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-            <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            {loading ? "Connexion..." : "Continuer avec Google"}
-          </button>
+          <form onSubmit={submit}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ ...S.label, marginBottom: 8 }}>Email</div>
+              <input style={S.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contact@tayafitness.com" required />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ ...S.label, marginBottom: 8 }}>Mot de passe</div>
+              <input style={S.input} type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" required />
+            </div>
+            {err && <div style={{ background: `${COLORS.red}22`, color: COLORS.red, padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{err}</div>}
+            <button style={{ ...S.btn, width: "100%", padding: "14px" }} disabled={loading}>
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -508,78 +518,232 @@ function Emails() {
 }
 
 // ── REVENUS ──────────────────────────────────────────────────────────────────
+const STRIPE_FN = "https://esylzsacjkimcqxllhwd.supabase.co/functions/v1/stripe-financials";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzeWx6c2FjamtpbWNxeGxsaHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMDE3MzEsImV4cCI6MjA5NTY3NzczMX0.3BZsEh6IaFqKHsW9MX3mhxWbvSHEcAqKhyOrJFZGAoA";
+
+function fmt(n, currency = "EUR") {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(n / 100);
+}
+
+function fmtDate(ts) {
+  return new Date(ts * 1000).toLocaleDateString("fr-FR");
+}
+
+function RevenusBarChart({ data }) {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data.map(d => d.amount), 1);
+  const W = 640, H = 180, PAD = 36, BAR_W = Math.floor((W - PAD * 2) / data.length) - 4;
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 30}`} style={{ width: "100%", height: "auto" }}>
+      {data.map((d, i) => {
+        const barH = Math.max(2, (d.amount / max) * H);
+        const x = PAD + i * ((W - PAD * 2) / data.length) + 2;
+        const y = H - barH;
+        const label = d.month.slice(5); // MM
+        return (
+          <g key={d.month}>
+            <rect x={x} y={y} width={BAR_W} height={barH} rx={4}
+              fill={i === data.length - 1 ? COLORS.gold : COLORS.blue} opacity={0.85} />
+            <text x={x + BAR_W / 2} y={H + 16} textAnchor="middle" fontSize={10} fill={COLORS.muted}>{label}</text>
+            {d.amount > 0 && (
+              <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={COLORS.white}>
+                {Math.round(d.amount / 100)}€
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function Revenus() {
-  const [abos, setAbos] = useState([]);
-  const [achats, setAchats] = useState([]);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function load() {
-      const [{ data: a }, { data: ac }] = await Promise.all([
-        sb.from("abonnements").select("plan, statut, created_at").eq("statut", "active"),
-        sb.from("achats").select("montant, created_at, statut").eq("statut", "active").order("created_at", { ascending: false }).limit(20),
-      ]);
-      setAbos(a || []);
-      setAchats(ac || []);
-      setLoading(false);
+      try {
+        const res = await fetch(STRIPE_FN, {
+          headers: { Authorization: `Bearer ${SUPABASE_ANON}` }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        setData(json);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
-  const planPrix = { starter: 49, performance: 99, vip: 199 };
-  const mrr = abos.reduce((s, a) => s + (planPrix[a.plan] || 0), 0);
-  const arr = mrr * 12;
-  const totalAchats = achats.reduce((s, a) => s + (a.montant || 0), 0);
-  const countByPlan = { starter: 0, performance: 0, vip: 0 };
-  abos.forEach(a => { if (countByPlan[a.plan] !== undefined) countByPlan[a.plan]++; });
+  if (loading) return (
+    <div>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}>Revenus</h1>
+      <p style={{ color: COLORS.muted }}>Chargement des données Stripe…</p>
+    </div>
+  );
+
+  if (error) return (
+    <div>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}>Revenus</h1>
+      <div style={{ ...S.card, color: COLORS.red }}>Erreur : {error}</div>
+    </div>
+  );
+
+  const kpis = [
+    { label: "MRR", value: fmt(data.mrr), color: COLORS.green, sub: "Revenu mensuel récurrent" },
+    { label: "ARR", value: fmt(data.arr), color: COLORS.blue, sub: "Revenu annuel projeté" },
+    { label: "Revenu total", value: fmt(data.totalRevenue), color: COLORS.gold, sub: "Tous paiements confondus" },
+    { label: "Balance dispo.", value: fmt(data.balance?.available ?? 0), color: "#3ecf8e", sub: "Disponible sur Stripe" },
+    { label: "Abonnés actifs", value: data.activeSubscriptions, color: "#b48cff", sub: "Abonnements en cours" },
+    { label: "Nouveaux / mois", value: data.newSubscriptionsThisMonth, color: COLORS.blue, sub: "Ce mois-ci" },
+    { label: "Annulés / mois", value: data.cancelledThisMonth, color: COLORS.red, sub: "Ce mois-ci" },
+    { label: "Taux de churn", value: `${(data.churnRate * 100).toFixed(1)}%`, color: COLORS.red, sub: "Résiliations mensuelles" },
+  ];
+
+  const planColors = ["#4d9fff", "#ff6b4a", "#b48cff", "#3ecf8e", "#ffd700"];
+  const totalPlanMRR = (data.revenueByPlan || []).reduce((s, p) => s + p.monthlyAmount, 0);
+
+  const statusLabel = {
+    succeeded: { label: "Réussi", color: COLORS.green },
+    pending: { label: "En attente", color: COLORS.gold },
+    failed: { label: "Échoué", color: COLORS.red },
+    refunded: { label: "Remboursé", color: COLORS.muted },
+  };
+
+  const subStatusLabel = {
+    active: { label: "Actif", color: COLORS.green },
+    past_due: { label: "Impayé", color: COLORS.red },
+    canceled: { label: "Annulé", color: COLORS.muted },
+    trialing: { label: "Essai", color: COLORS.blue },
+  };
 
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}>Revenus</h1>
-      {loading ? <p style={{ color: COLORS.muted }}>Chargement...</p> : (
-        <>
-          <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-            {[
-              { label: "MRR (mensuel récurrent)", value: `${mrr}€`, color: COLORS.green },
-              { label: "ARR (annuel projeté)", value: `${arr}€`, color: COLORS.blue },
-              { label: "Ventes programmes", value: `${totalAchats.toFixed(0)}€`, color: COLORS.gold },
-              { label: "Abonnés actifs", value: abos.length, color: "#b48cff" },
-            ].map(s => (
-              <div key={s.label} style={S.stat}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{s.label}</div>
+
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+        {kpis.map(k => (
+          <div key={k.label} style={S.stat}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: COLORS.muted, marginBottom: 8 }}>{k.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart + Plans */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
+        <div style={S.card}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Revenus des 12 derniers mois</h3>
+          <RevenusBarChart data={data.revenueByMonth} />
+        </div>
+
+        <div style={S.card}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Répartition par offre</h3>
+          {(data.revenueByPlan || []).length === 0 ? (
+            <p style={{ color: COLORS.muted, fontSize: 13 }}>Aucun abonnement actif.</p>
+          ) : (data.revenueByPlan || []).map((p, i) => {
+            const pct = totalPlanMRR > 0 ? (p.monthlyAmount / totalPlanMRR * 100) : 0;
+            const col = planColors[i % planColors.length];
+            return (
+              <div key={p.id} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                  <span style={{ color: COLORS.white }}>{p.name || p.id}</span>
+                  <span style={{ color: COLORS.muted }}>{p.count} × <strong style={{ color: col }}>{fmt(p.monthlyAmount)}/m</strong></span>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 100, height: 5 }}>
+                  <div style={{ background: col, borderRadius: 100, height: 5, width: `${pct}%`, transition: "width 0.5s" }} />
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-            <div style={S.card}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Répartition par plan</h3>
-              {[["starter", COLORS.blue, 49], ["performance", COLORS.gold, 99], ["vip", "#b48cff", 199]].map(([plan, color, prix]) => (
-                <div key={plan} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 14, textTransform: "capitalize" }}>{plan}</span>
-                    <span style={{ fontSize: 14, color: COLORS.muted }}>{countByPlan[plan]} × {prix}€ = <strong style={{ color }}>{countByPlan[plan] * prix}€/mois</strong></span>
-                  </div>
-                  <div style={{ background: COLORS.border, borderRadius: 100, height: 6 }}>
-                    <div style={{ background: color, borderRadius: 100, height: 6, width: mrr > 0 ? `${(countByPlan[plan] * prix / mrr * 100)}%` : "0%", transition: "width 0.5s" }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={S.card}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Derniers achats programmes</h3>
-              {achats.length === 0 ? <p style={{ color: COLORS.muted, fontSize: 14 }}>Aucun achat.</p> : achats.map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${COLORS.border}`, fontSize: 13 }}>
-                  <span style={{ color: COLORS.white }}>{new Date(a.created_at).toLocaleDateString("fr-FR")}</span>
-                  <span style={{ color: COLORS.gold, fontWeight: 600 }}>{a.montant}€</span>
-                </div>
-              ))}
-            </div>
+      {/* Recent transactions */}
+      <div style={{ ...S.card, marginBottom: 20 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Dernières transactions</h3>
+        {(data.recentTransactions || []).length === 0 ? (
+          <p style={{ color: COLORS.muted, fontSize: 13 }}>Aucune transaction.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  {["Date", "Description", "Client", "Montant", "Statut"].map(h => (
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(data.recentTransactions || []).map(tx => {
+                  const st = tx.refunded ? statusLabel.refunded : (statusLabel[tx.status] || { label: tx.status, color: COLORS.muted });
+                  return (
+                    <tr key={tx.id}>
+                      <td style={S.td}>{fmtDate(tx.date)}</td>
+                      <td style={{ ...S.td, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.description || "—"}</td>
+                      <td style={{ ...S.td, color: COLORS.muted, fontSize: 13 }}>{tx.customer_email || "—"}</td>
+                      <td style={{ ...S.td, fontWeight: 700, color: COLORS.green }}>{fmt(tx.amount, tx.currency?.toUpperCase() || "EUR")}</td>
+                      <td style={S.td}><span style={S.badge(st.color)}>{st.label}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </>
-      )}
+        )}
+      </div>
+
+      {/* Recent subscriptions */}
+      <div style={S.card}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Abonnements récents</h3>
+        {(data.recentSubscriptions || []).length === 0 ? (
+          <p style={{ color: COLORS.muted, fontSize: 13 }}>Aucun abonnement.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  {["Date", "Client", "Offre", "Montant", "Statut", "Prochain paiement"].map(h => (
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(data.recentSubscriptions || []).map(sub => {
+                  const st = subStatusLabel[sub.status] || { label: sub.status, color: COLORS.muted };
+                  return (
+                    <tr key={sub.id}>
+                      <td style={S.td}>{fmtDate(sub.created)}</td>
+                      <td style={{ ...S.td, fontSize: 13 }}>
+                        <div>{sub.customer_name || "—"}</div>
+                        <div style={{ color: COLORS.muted, fontSize: 11 }}>{sub.customer_email}</div>
+                      </td>
+                      <td style={{ ...S.td, color: COLORS.blue }}>{sub.plan_name || "—"}</td>
+                      <td style={{ ...S.td, fontWeight: 700, color: COLORS.gold }}>
+                        {fmt(sub.amount)}/{sub.interval === "month" ? "mois" : sub.interval === "year" ? "an" : sub.interval}
+                      </td>
+                      <td style={S.td}>
+                        <span style={S.badge(st.color)}>{st.label}</span>
+                        {sub.cancel_at_period_end && <span style={{ ...S.badge(COLORS.red), marginLeft: 6 }}>résiliation prévue</span>}
+                      </td>
+                      <td style={{ ...S.td, color: COLORS.muted, fontSize: 12 }}>
+                        {sub.current_period_end ? fmtDate(sub.current_period_end) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -731,7 +895,7 @@ export default function App() {
   }, []);
 
   if (checking) return <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: COLORS.muted }}>Chargement...</div></div>;
-  if (!user) return <Login />;
+  if (!user) return <Login onLogin={setUser} />;
 
   const PAGES = { dashboard: Dashboard, clients: Clients, abonnements: Abonnements, programmes: Programmes, emails: Emails, messages: Messages, revenus: Revenus, taches: Taches };
   const Page = PAGES[active] || Dashboard;
