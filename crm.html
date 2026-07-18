@@ -1213,7 +1213,17 @@
                 ].map(([field,label,enabled])=>h('label',{key:field,style:{display:'flex',alignItems:'flex-start',gap:10,cursor:enabled?'pointer':'not-allowed',marginBottom:12,opacity:enabled?1:0.4}},
                   h('input',{type:'checkbox',checked:!!pForm[field],onChange:e=>enabled&&setPForm(p=>({...p,[field]:e.target.checked})),disabled:!enabled,style:{cursor:enabled?'pointer':'not-allowed',accentColor:C.blue,width:16,height:16,flexShrink:0,marginTop:2}}),
                   h('span',{style:{fontSize:13,color:C.white}},label)
-                ))
+                )),
+                h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginTop:16}},[
+                  h('div',{key:'px'},[
+                    h('label',{style:{display:'block',fontSize:12,color:C.muted,marginBottom:6}},'Prix (€)'),
+                    h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix??'',onChange:e=>setPForm(p=>({...p,prix:e.target.value})),placeholder:'ex: 49',style:{...inp,width:'100%'}})
+                  ]),
+                  h('div',{key:'pxp'},[
+                    h('label',{style:{display:'block',fontSize:12,color:C.muted,marginBottom:6}},'Prix promo (€) — optionnel'),
+                    h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix_promo??'',onChange:e=>setPForm(p=>({...p,prix_promo:e.target.value})),placeholder:'vide = pas de promo',style:{...inp,width:'100%'}})
+                  ])
+                ])
               ]),
 
               Sec('📁 Fichiers',[
