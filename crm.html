@@ -1213,17 +1213,7 @@
                 ].map(([field,label,enabled])=>h('label',{key:field,style:{display:'flex',alignItems:'flex-start',gap:10,cursor:enabled?'pointer':'not-allowed',marginBottom:12,opacity:enabled?1:0.4}},
                   h('input',{type:'checkbox',checked:!!pForm[field],onChange:e=>enabled&&setPForm(p=>({...p,[field]:e.target.checked})),disabled:!enabled,style:{cursor:enabled?'pointer':'not-allowed',accentColor:C.blue,width:16,height:16,flexShrink:0,marginTop:2}}),
                   h('span',{style:{fontSize:13,color:C.white}},label)
-                )),
-                h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginTop:16}},[
-                  h('div',{key:'px'},[
-                    h('label',{style:{display:'block',fontSize:12,color:C.muted,marginBottom:6}},'Prix (€)'),
-                    h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix??'',onChange:e=>setPForm(p=>({...p,prix:e.target.value})),placeholder:'ex: 49',style:{...inp,width:'100%'}})
-                  ]),
-                  h('div',{key:'pxp'},[
-                    h('label',{style:{display:'block',fontSize:12,color:C.muted,marginBottom:6}},'Prix promo (€) — optionnel'),
-                    h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix_promo??'',onChange:e=>setPForm(p=>({...p,prix_promo:e.target.value})),placeholder:'vide = pas de promo',style:{...inp,width:'100%'}})
-                  ])
-                ])
+                ))
               ]),
 
               Sec('📁 Fichiers',[
@@ -1256,6 +1246,22 @@
                     ),
                 h('input',{value:pForm.image_url||'',onChange:e=>setPForm(p=>({...p,image_url:e.target.value})),placeholder:'https://... (URL de l\'image)',style:{...inp,width:'100%',fontSize:11}}),
                 h('div',{style:{fontSize:10,color:C.muted,marginTop:4}},'Format paysage (3:2) — 1080×720 px · JPG, PNG, WEBP · max 2 Mo')
+              ]),
+
+              Sec('💶 Prix & visibilité',[
+                h('div',{style:{marginBottom:12}},
+                  h('label',{style:{display:'block',fontSize:11,color:C.muted,marginBottom:4}},'Prix (€)'),
+                  h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix??'',onChange:e=>setPForm(p=>({...p,prix:e.target.value})),placeholder:'ex: 19.95',style:{...inp,width:'100%',fontSize:16,fontWeight:700}})
+                ),
+                h('div',{style:{marginBottom:12}},
+                  h('label',{style:{display:'block',fontSize:11,color:C.muted,marginBottom:4}},'Prix promo (€) — optionnel'),
+                  h('input',{type:'number',min:'0',step:'0.01',value:pForm.prix_promo??'',onChange:e=>setPForm(p=>({...p,prix_promo:e.target.value})),placeholder:'vide = pas de promo',style:{...inp,width:'100%'}})
+                ),
+                h('label',{style:{display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:C.soft,borderRadius:8,padding:'10px 12px'}},
+                  h('input',{type:'checkbox',checked:!!pForm.actif,onChange:e=>setPForm(p=>({...p,actif:e.target.checked})),style:{cursor:'pointer',accentColor:C.green,width:16,height:16,flexShrink:0}}),
+                  h('span',{style:{fontSize:13,color:C.white,fontWeight:600}},pForm.actif?'🌐 Visible sur le site':'☁ Masqué du site')
+                ),
+                h('div',{style:{fontSize:10,color:C.muted,marginTop:8,lineHeight:1.5}},'Le prix et la visibilité s\'appliquent au site dès l\'enregistrement.')
               ]),
 
               Sec('⚙️ Paramètres',[
