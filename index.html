@@ -335,6 +335,8 @@
     function App() {
       const [user, setUser] = useState(null);
       const [tab, setTab] = useState('dashboard');
+      // Permet aux Tâches d'envoyer vers la fiche du client concerné.
+      useEffect(()=>{window.__crmSetTab=setTab;},[]);
       const [loading, setLoading] = useState(true);
       const [loginLoading, setLoginLoading] = useState(false);
       const [err, setErr] = useState('');
@@ -546,6 +548,13 @@
           sb.from('subscription_plans').select('id,name,price,billing_cycle').order('price')
         ]).then(([{data:cl},{data:gr},{data:pr},{data:pl}])=>{
           setClients(cl||[]);setGroupes(gr||[]);setProgrammes(pr||[]);setPlans(pl||[]);setLoading(false);
+          // Fiche demandée depuis les Tâches : on l'ouvre directement.
+          const vise=window.__crmOpenClient;
+          if(vise){
+            window.__crmOpenClient=null;
+            const c=(cl||[]).find(x=>x.id===vise);
+            if(c){setSelectedClient(c);setView('detail');loadNotes(c.id);}
+          }
         });
       }
 
@@ -2961,21 +2970,112 @@
         // ── Tâches ───────────────────────────────────────────────────────────────
     function Taches() {
       const [taches,setTaches]=useState([]);
+      const [clientsMap,setClientsMap]=useState({});
       const [titre,setTitre]=useState('');
       const [prio,setPrio]=useState('normale');
-      useEffect(()=>{load();}, []);
-      async function load(){const {data}=await sb.from('taches').select('*').order('created_at',{ascending:false});setTaches(data||[]);}
-      async function add(e){e.preventDefault();if(!titre.trim())return;await sb.from('taches').insert({titre,statut:'todo',priorite:prio});setTitre('');load();}
+      const [busy,setBusy]=useState(false);
+      const [msg,setMsg]=useState('');
+
+      useEffect(()=>{regen(true);}, []);
+
+      async function load(){
+        const [{data:t},{data:cl}]=await Promise.all([
+          sb.from('taches').select('*').order('echeance',{ascending:true,nullsFirst:false}),
+          sb.from('clients').select('id,prenom,nom,email')
+        ]);
+        const m={};(cl||[]).forEach(c=>{m[c.id]=c;});
+        setClientsMap(m);setTaches(t||[]);
+      }
+      // Recalcule les tâches automatiques à partir des signaux réels du CRM.
+      async function regen(silent){
+        setBusy(true);
+        const {data,error}=await sb.rpc('generer_taches_crm');
+        await load();
+        setBusy(false);
+        if(!silent){
+          const r=Array.isArray(data)?data[0]:data;
+          setMsg(error?('❌ '+error.message)
+            :`✅ ${r?.creees??0} nouvelle(s) · ${r?.resolues??0} classée(s) sans suite`);
+          setTimeout(()=>setMsg(''),4000);
+        }
+      }
+      async function add(e){e.preventDefault();if(!titre.trim())return;
+        await sb.from('taches').insert({titre,statut:'todo',priorite:prio,source:'manuel'});setTitre('');load();}
       async function toggle(id,done){await sb.from('taches').update({statut:done?'todo':'done'}).eq('id',id);load();}
       async function del(id){await sb.from('taches').delete().eq('id',id);load();}
+
       const pc={haute:C.red,normale:C.gold,basse:C.blue};
+      const SRC={
+        paiement_echoue:{l:'Paiement',c:C.red},
+        abo_fin:{l:'Abonnement',c:C.red},
+        sans_programme:{l:'Programme',c:C.gold},
+        inactif:{l:'Engagement',c:C.blue},
+        reservation:{l:'Séance',c:C.green},
+        manuel:{l:'Perso',c:C.muted}
+      };
+      function qui(t){
+        const c=t.client_id&&clientsMap[t.client_id];if(!c)return null;
+        return `${c.prenom||''} ${c.nom||''}`.trim()||c.email;
+      }
+      // Ouvre la fiche du client concerné, sans avoir à le rechercher.
+      function openClient(t){
+        if(!t.client_id)return;
+        window.__crmOpenClient=t.client_id;
+        if(window.__crmSetTab)window.__crmSetTab('clients');
+      }
+      function ech(t){
+        if(!t.echeance)return null;
+        const j=Math.round((new Date(t.echeance)-new Date())/86400000);
+        if(j<0)return{txt:`En retard de ${Math.abs(j)} j`,c:C.red};
+        if(j===0)return{txt:"Aujourd'hui",c:C.red};
+        if(j===1)return{txt:'Demain',c:C.gold};
+        return{txt:`Dans ${j} jours`,c:C.muted};
+      }
+
       const todo=taches.filter(t=>t.statut!=='done');
       const done=taches.filter(t=>t.statut==='done');
+      const urgentes=todo.filter(t=>t.priorite==='haute').length;
+
+      function ligne(t,i,fini){
+        const nom=qui(t), e=fini?null:ech(t), s=SRC[t.source]||SRC.manuel;
+        return h('div',{key:t.id||i,style:{display:'flex',alignItems:'flex-start',gap:12,padding:'14px 0',borderBottom:`1px solid ${C.border}`}},
+          h('button',{onClick:()=>toggle(t.id,fini),title:fini?'Rouvrir':'Marquer comme fait',
+            style:{width:20,height:20,borderRadius:4,marginTop:2,flexShrink:0,cursor:'pointer',
+              border:fini?'none':`2px solid ${C.border}`,background:fini?C.green:'transparent',
+              display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}},fini?'✓':''),
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontSize:14,color:fini?C.muted:C.white,textDecoration:fini?'line-through':'none',lineHeight:1.4}},t.titre),
+            t.description&&!fini?h('div',{style:{fontSize:11.5,color:C.muted,marginTop:4,lineHeight:1.5}},t.description):null,
+            h('div',{style:{display:'flex',flexWrap:'wrap',alignItems:'center',gap:6,marginTop:8}},
+              t.auto?h('span',{style:{...badge(s.c),fontSize:10}},s.l):null,
+              e?h('span',{style:{...badge(e.c),fontSize:10}},e.txt):null,
+              h('span',{style:{...badge(pc[t.priorite]||C.muted),fontSize:10}},t.priorite),
+              nom?h('button',{onClick:()=>openClient(t),title:'Ouvrir la fiche client',
+                style:{background:'transparent',border:`1px solid ${C.border}`,borderRadius:999,padding:'2px 10px',
+                  fontSize:10.5,color:C.gold,cursor:'pointer',fontWeight:600}},'👤 '+nom):null
+            )
+          ),
+          h('button',{onClick:()=>del(t.id),title:'Supprimer',
+            style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:16,flexShrink:0}},'✕')
+        );
+      }
+
       return h('div',null,
-        h('h1',{style:{fontSize:24,fontWeight:700,marginBottom:24,color:C.white}},'Tâches'),
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:8}},
+          h('h1',{style:{fontSize:24,fontWeight:700,color:C.white,margin:0}},'Tâches'),
+          h('button',{onClick:()=>regen(false),disabled:busy,
+            style:{...btn,background:'transparent',border:`1px solid ${C.border}`,color:C.muted,opacity:busy?0.5:1}},
+            busy?'⏳ Analyse…':'🔄 Actualiser')
+        ),
+        h('p',{style:{fontSize:12,color:C.muted,marginBottom:20,lineHeight:1.6}},
+          'Cette liste se remplit toute seule à partir du CRM : paiement en échec, abonnement qui se termine, client sans programme, abonné décroché, séance réservée. Recalcul automatique toutes les 2 h — une tâche disparaît d\'elle-même quand sa cause est réglée.'),
+        msg?h('div',{style:{background:C.soft,borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:C.white}},msg):null,
+        urgentes>0?h('div',{style:{background:`${C.red}1a`,border:`1px solid ${C.red}`,borderRadius:10,
+          padding:'12px 16px',marginBottom:20,fontSize:13,color:C.white}},
+          `🔴 ${urgentes} tâche${urgentes>1?'s':''} en priorité haute — à traiter aujourd'hui.`):null,
         h('div',{style:{...card,marginBottom:24}},
-          h('form',{onSubmit:add,style:{display:'flex',gap:12}},
-            h('input',{style:{...inp,flex:1},value:titre,onChange:e=>setTitre(e.target.value),placeholder:'Nouvelle tâche...'}),
+          h('form',{onSubmit:add,style:{display:'flex',gap:12,flexWrap:'wrap'}},
+            h('input',{style:{...inp,flex:1,minWidth:200},value:titre,onChange:e=>setTitre(e.target.value),placeholder:'Ajouter une tâche perso...'}),
             h('select',{style:{...inp,width:140},value:prio,onChange:e=>setPrio(e.target.value)},
               h('option',{value:'haute'},'🔴 Haute'),
               h('option',{value:'normale'},'🟡 Normale'),
@@ -2984,25 +3084,17 @@
             h('button',{style:btn},'Ajouter')
           )
         ),
-        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}},
+        h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:24}},
           h('div',{style:card},
             h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:16,color:C.white}},`À faire (${todo.length})`),
-            todo.length===0?h('p',{style:{color:C.muted,fontSize:14}},'Tout est fait 🎉'):
-            todo.map((t,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}},
-              h('button',{onClick:()=>toggle(t.id,false),style:{width:20,height:20,borderRadius:4,border:`2px solid ${C.border}`,background:'transparent',cursor:'pointer',flexShrink:0}}),
-              h('span',{style:{flex:1,fontSize:14,color:C.white}},t.titre),
-              h('span',{style:badge(pc[t.priorite]||C.muted)},t.priorite),
-              h('button',{onClick:()=>del(t.id),style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:16}},'✕')
-            ))
+            todo.length===0?h('p',{style:{color:C.muted,fontSize:14,lineHeight:1.6}},
+              'Rien à traiter 🎉 Aucun paiement en échec, aucun abonné décroché, aucune séance à préparer.'):
+            todo.map((t,i)=>ligne(t,i,false))
           ),
           h('div',{style:card},
             h('h3',{style:{fontSize:15,fontWeight:600,marginBottom:16,color:C.white}},`Terminées (${done.length})`),
             done.length===0?h('p',{style:{color:C.muted,fontSize:14}},'Aucune tâche terminée.'):
-            done.map((t,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}},
-              h('button',{onClick:()=>toggle(t.id,true),style:{width:20,height:20,borderRadius:4,border:'none',background:C.green,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}},'✓'),
-              h('span',{style:{flex:1,fontSize:14,textDecoration:'line-through',color:C.muted}},t.titre),
-              h('button',{onClick:()=>del(t.id),style:{background:'transparent',border:'none',color:C.muted,cursor:'pointer',fontSize:16}},'✕')
-            ))
+            done.map((t,i)=>ligne(t,i,true))
           )
         )
       );
