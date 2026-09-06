@@ -89,6 +89,7 @@
     import { createRoot } from 'react-dom/client';
     import { createClient } from '@supabase/supabase-js';
     import { createElement as h } from 'react';
+    import { creerReponses } from './js/reponses.js';
 
     const sb = createClient(
       'https://esylzsacjkimcqxllhwd.supabase.co',
@@ -128,6 +129,7 @@
     const th = {padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:C.muted,borderBottom:`1px solid ${C.border}`};
     const td = {padding:'14px 16px',fontSize:14,color:C.white,borderBottom:`1px solid ${C.border}`};
     const badge = (c) => ({background:`${c}22`,color:c,fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:100,display:'inline-block',marginRight:4});
+    const Reponses = creerReponses({h,useState,useEffect,useMemo,sb,C,card,btn,inp,badge});
 
     // ── Azeoo clients data (52 clients réels) ───────────────────────────────
     const AZEOO_CLIENTS = [
@@ -214,6 +216,7 @@
       {id:'emails',icon:'📧',label:'Campagnes mail'},
       {id:'taches',icon:'✅',label:'Tâches'},
       {id:'questionnaires',icon:'📋',label:'Questionnaires'},
+      {id:'reponses',icon:'▤',label:'Réponses'},
       {id:'prospects',icon:'🎯',label:'Prospects'},
   {id:'analytique',icon:'📈',label:'Analytique'},
       {id:'clients-online',icon:'🌐',label:'Clients Online'},
@@ -391,7 +394,7 @@
         )
       );
 
-      const pages = {dashboard:Dashboard,clients:ClientsAzeoo,programmes:Programmes,exercices:Exercices,abonnements:Abonnements,revenus:Revenus,emails:Emails,taches:Taches,questionnaires:Questionnaires,prospects:Prospects,analytique:Analytique,'clients-online':ClientsOnline};
+      const pages = {dashboard:Dashboard,clients:ClientsAzeoo,programmes:Programmes,exercices:Exercices,abonnements:Abonnements,revenus:Revenus,emails:Emails,taches:Taches,questionnaires:Questionnaires,reponses:Reponses,prospects:Prospects,analytique:Analytique,'clients-online':ClientsOnline};
       const Page = pages[tab] || Dashboard;
 
       return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',fontFamily:'Inter,sans-serif'}},
