@@ -369,28 +369,47 @@
 
       if (loading) return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:C.muted}},'Chargement...');
 
-      if (!user) return h('div',{style:{background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Inter,sans-serif'}},
-        h('div',{style:{width:400}},
+      if (!user) return h('div',{style:{
+          background:C.bg,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',
+          fontFamily:'Inter,sans-serif',position:'relative',overflow:'hidden'
+        }},
+        // Fond décoratif — cercles lumineux
+        h('div',{style:{position:'absolute',top:'-120px',right:'-120px',width:'500px',height:'500px',borderRadius:'50%',background:`radial-gradient(circle,${C.gold}18 0%,transparent 70%)`,pointerEvents:'none'}}),
+        h('div',{style:{position:'absolute',bottom:'-100px',left:'-100px',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(circle,#baf76e12 0%,transparent 70%)',pointerEvents:'none'}}),
+        // Carte login
+        h('div',{style:{width:'100%',maxWidth:420,padding:'0 20px',position:'relative',zIndex:1}},
+          // Logo + titre
           h('div',{style:{textAlign:'center',marginBottom:40}},
-            h('div',{dangerouslySetInnerHTML:{__html:`
-              <img src="/assets/logo.png" alt="Taya Fitness" style="width:220px;height:auto;display:inline-block">`}}),
-            h('p',{style:{color:C.muted,marginTop:4,fontSize:13}},'Espace de gestion — Sarah Fumey')
-          ),
-          h('div',{style:card},
-            h('p',{style:{color:C.muted,fontSize:14,marginBottom:24,textAlign:'center'}},'Connecte-toi avec ton compte Google'),
-            err && h('div',{style:{background:`${C.red}22`,color:C.red,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13}},err),
-            h('form',{onSubmit:loginEmail},
-              h('div',{style:{marginBottom:16}},
-                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Email'),
-                h('input',{style:inp,type:'email',value:email,onChange:e=>setEmail(e.target.value),required:true,placeholder:'contact@tayafitness.com'})
-              ),
-              h('div',{style:{marginBottom:24}},
-                h('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Mot de passe'),
-                h('input',{style:inp,type:'password',value:pass,onChange:e=>setPass(e.target.value),placeholder:'••••••••',required:true})
-              ),
-              h('button',{style:{...btn,width:'100%',padding:14},disabled:loginLoading},loginLoading?'Connexion...':'Se connecter')
+            h('div',{dangerouslySetInnerHTML:{__html:`<img src="/assets/logo.png" alt="Taya Fitness" style="width:200px;height:auto;display:inline-block">`}}),
+            h('div',{style:{marginTop:16,display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+              h('div',{style:{height:'1px',flex:1,background:`rgba(255,107,74,0.25)`}}),
+              h('span',{style:{fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:C.gold}},'Espace coach'),
+              h('div',{style:{height:'1px',flex:1,background:`rgba(255,107,74,0.25)`}})
             )
-          )
+          ),
+          // Carte formulaire
+          h('div',{style:{background:C.card,border:`1px solid rgba(255,107,74,0.2)`,borderRadius:20,padding:'36px 32px',boxShadow:'0 24px 64px rgba(0,0,0,0.4)'}},
+            h('h2',{style:{fontSize:22,fontWeight:800,color:C.white,margin:'0 0 6px',letterSpacing:'-0.03em'}},'Bon retour'),
+            h('p',{style:{color:C.muted,fontSize:14,margin:'0 0 28px',lineHeight:1.5}},'Connecte-toi pour accéder\xA0à\xA0ton espace de gestion.'),
+            err && h('div',{style:{background:`${C.red}18`,color:C.red,border:`1px solid ${C.red}33`,padding:'10px 14px',borderRadius:10,marginBottom:20,fontSize:13,display:'flex',alignItems:'center',gap:8}},
+              h('span',{style:{fontSize:16}},''),err
+            ),
+            h('form',{onSubmit:loginEmail},
+              h('div',{style:{marginBottom:18}},
+                h('label',{style:{display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Adresse e-mail'),
+                h('input',{style:{...inp,borderRadius:12,padding:'13px 16px',fontSize:14,transition:'border-color 0.2s'},type:'email',value:email,onChange:e=>setEmail(e.target.value),required:true,placeholder:'contact@tayafitness.com'})
+              ),
+              h('div',{style:{marginBottom:28}},
+                h('label',{style:{display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:C.gold,marginBottom:8}},'Mot de passe'),
+                h('input',{style:{...inp,borderRadius:12,padding:'13px 16px',fontSize:14},type:'password',value:pass,onChange:e=>setPass(e.target.value),placeholder:'••••••••',required:true})
+              ),
+              h('button',{style:{...btn,width:'100%',padding:'15px',borderRadius:12,fontSize:15,fontWeight:700,letterSpacing:'0.01em',boxShadow:`0 4px 20px ${C.gold}40`},disabled:loginLoading},
+                loginLoading ? 'Connexion en cours...' : 'Se connecter'
+              )
+            )
+          ),
+          // Footer
+          h('p',{style:{textAlign:'center',marginTop:24,fontSize:12,color:`rgba(220,232,244,0.3)`}},'Taya Fitness \xB7 Espace r\xE9serv\xE9 au coach')
         )
       );
 
